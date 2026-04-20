@@ -76,7 +76,7 @@ export default function LoginScreen() {
           <CardHeader className="text-center pt-10 pb-6">
             <CardTitle className="text-4xl font-headline font-bold text-primary flex items-center justify-center gap-3">
               <SatelliteDish className="w-10 h-10 animate-pulse text-primary" />
-              CampusConnect
+              Voxa
             </CardTitle>
             <CardDescription className="pt-2 text-foreground/80 font-medium">
               Ingresa tus credenciales para acceder a la plataforma.
@@ -121,7 +121,7 @@ export default function LoginScreen() {
             </form>
             
             <p className="mt-8 text-center text-xs text-muted-foreground opacity-60 font-medium">
-              Protección de datos garantizada por CampusConnect Seguridad.
+              Protección de datos garantizada por Voxa Seguridad.
             </p>
           </CardContent>
         </Card>
