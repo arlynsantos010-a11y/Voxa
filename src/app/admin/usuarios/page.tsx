@@ -31,6 +31,7 @@ export default function GestionUsuariosPage() {
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<UserRole>("student");
   const [newLanguage, setNewLanguage] = useState<string>("Inglés");
+  const [newLevel, setNewLevel] = useState<string>("A1");
 
   useEffect(() => {
     if (userRole !== 'admin') router.push('/');
@@ -67,7 +68,8 @@ export default function GestionUsuariosPage() {
       username: newUsername,
       password: newPassword,
       role: newRole,
-      languages: newRole === 'student' ? [newLanguage] : undefined
+      languages: newRole === 'student' ? [newLanguage] : undefined,
+      level: newRole === 'student' ? newLevel : undefined
     };
 
     setUsers([newUser, ...users]);
@@ -78,6 +80,7 @@ export default function GestionUsuariosPage() {
     setNewPassword("");
     setNewRole("student");
     setNewLanguage("Inglés");
+    setNewLevel("A1");
 
     toast({
       title: "Usuario Creado",
@@ -187,20 +190,39 @@ export default function GestionUsuariosPage() {
                   </div>
 
                   {newRole === 'student' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="language" className="text-xs font-bold uppercase tracking-widest opacity-70">Idioma que Aprende</Label>
-                      <Select value={newLanguage} onValueChange={setNewLanguage}>
-                        <SelectTrigger className="bg-secondary/20 border-white/5 h-12 rounded-xl">
-                          <SelectValue placeholder="Seleccionar idioma" />
-                        </SelectTrigger>
-                        <SelectContent className="glass-card border-white/10">
-                          <SelectItem value="Inglés" className="focus:bg-primary/20">Inglés</SelectItem>
-                          <SelectItem value="Francés" className="focus:bg-primary/20">Francés</SelectItem>
-                          <SelectItem value="Alemán" className="focus:bg-primary/20">Alemán</SelectItem>
-                          <SelectItem value="Italiano" className="focus:bg-primary/20">Italiano</SelectItem>
-                          <SelectItem value="Portugués" className="focus:bg-primary/20">Portugués</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="language" className="text-xs font-bold uppercase tracking-widest opacity-70">Idioma</Label>
+                        <Select value={newLanguage} onValueChange={setNewLanguage}>
+                          <SelectTrigger className="bg-secondary/20 border-white/5 h-12 rounded-xl">
+                            <SelectValue placeholder="Seleccionar idioma" />
+                          </SelectTrigger>
+                          <SelectContent className="glass-card border-white/10">
+                            <SelectItem value="Inglés" className="focus:bg-primary/20">Inglés</SelectItem>
+                            <SelectItem value="Francés" className="focus:bg-primary/20">Francés</SelectItem>
+                            <SelectItem value="Alemán" className="focus:bg-primary/20">Alemán</SelectItem>
+                            <SelectItem value="Italiano" className="focus:bg-primary/20">Italiano</SelectItem>
+                            <SelectItem value="Portugués" className="focus:bg-primary/20">Portugués</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="level" className="text-xs font-bold uppercase tracking-widest opacity-70">Nivel</Label>
+                        <Select value={newLevel} onValueChange={setNewLevel}>
+                          <SelectTrigger className="bg-secondary/20 border-white/5 h-12 rounded-xl">
+                            <SelectValue placeholder="Seleccionar nivel" />
+                          </SelectTrigger>
+                          <SelectContent className="glass-card border-white/10">
+                            <SelectItem value="A1" className="focus:bg-primary/20">A1 (Básico)</SelectItem>
+                            <SelectItem value="A2" className="focus:bg-primary/20">A2 (Básico Alto)</SelectItem>
+                            <SelectItem value="B1" className="focus:bg-primary/20">B1 (Intermedio)</SelectItem>
+                            <SelectItem value="B2" className="focus:bg-primary/20">B2 (Interm. Alto)</SelectItem>
+                            <SelectItem value="C1" className="focus:bg-primary/20">C1 (Avanzado)</SelectItem>
+                            <SelectItem value="C2" className="focus:bg-primary/20">C2 (Nativo)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -252,6 +274,11 @@ export default function GestionUsuariosPage() {
                         <div className="flex items-center gap-2">
                           <Globe2 className="w-4 h-4 text-accent" />
                           <span className="text-sm font-semibold">{user.languages?.[0] || 'No asignado'}</span>
+                          {user.level && (
+                            <Badge variant="outline" className="text-[10px] ml-1 bg-white/5 border-white/10 text-white">
+                              {user.level}
+                            </Badge>
+                          )}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>

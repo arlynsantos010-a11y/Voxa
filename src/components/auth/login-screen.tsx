@@ -17,16 +17,17 @@ export interface UserData {
   password: string;
   role: UserRole;
   languages?: string[];
+  level?: string;
 }
 
 export const users: UserData[] = [
   { username: "admin", password: "admin123", role: "admin" },
   { username: "profesor", password: "12345", role: "professor" },
-  { username: "estudiante", password: "12345", role: "student", languages: ["Inglés", "Francés"] },
+  { username: "estudiante", password: "12345", role: "student", languages: ["Inglés", "Francés"], level: "B2" },
   { username: "AdminMaster", password: "AdminPassword123", role: "admin" },
   { username: "profe2", password: "abc", role: "professor" },
-  { username: "Ana Torres", password: "password", role: "student", languages: ["Francés"] },
-  { username: "Carlos Gomez", password: "password", role: "student", languages: ["Alemán", "Italiano"] },
+  { username: "Ana Torres", password: "password", role: "student", languages: ["Francés"], level: "A1" },
+  { username: "Carlos Gomez", password: "password", role: "student", languages: ["Alemán", "Italiano"], level: "B1" },
 ];
 
 export const studentUsers = users.filter(u => u.role === 'student');
