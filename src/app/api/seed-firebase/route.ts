@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { ref, set } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET() {
   const languageLessons = {
     "Francés": [
