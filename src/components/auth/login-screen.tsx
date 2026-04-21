@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { UserRole } from "@/app/page";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
+import { ref, get } from "firebase/database";
+import { rtdb } from "@/lib/firebase";
 
 export interface UserData {
   username: string;
@@ -36,8 +38,29 @@ export default function LoginScreen() {
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [error, setError] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
   const { toast } = useToast();
   const { onLogin } = useAuth();
+
+  useEffect(() => {
+    // Intentar leer el Whatsapp personalizado desde Firebase
+    try {
+      get(ref(rtdb, 'settings/whatsapp')).then((snapshot) => {
+        if (snapshot.exists()) {
+          setWhatsappNumber(snapshot.val());
+        }
+      }).catch((e) => {
+        console.warn("No se pudo obtener el whatsapp dinámico, usando por defecto.", e);
+      });
+    } catch (e) {
+      console.warn("Lectura fallida", e);
+    }
+  }, []);
+
+  const handleWhatsApp = () => {
+    const wa = whatsappNumber || "1234567890"; // Reemplaza "1234567890" por tu número principal seguro en caso de fallas.
+    window.open(`https://wa.me/${wa}`, "_blank");
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +156,7 @@ export default function LoginScreen() {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => toast({ title: "Verificación de WhatsApp", description: "El enlace con tu número de teléfono se enviará en breves..." })}
+                  onClick={handleWhatsApp}
                   className="w-full h-16 text-lg rounded-2xl font-black bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20 transition-all hover:scale-[1.02] active:scale-[0.98] hover:bg-[#25D366]/20 hover:text-[#25D366]"
                 >
                   <svg className="mr-2 w-6 h-6" viewBox="0 0 24 24" fill="currentColor">

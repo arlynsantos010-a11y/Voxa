@@ -3,6 +3,8 @@
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ref, get, set as setFirebase } from "firebase/database";
+import { rtdb } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Settings, Globe, Bell, Shield, Palette, Zap, Mail, Smartphone, Video } from "lucide-react";
@@ -16,16 +18,29 @@ export default function ConfiguracionAdminPage() {
   const { userRole } = useAuth();
   const router = useRouter();
   const [playlistId, setPlaylistId] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
 
   useEffect(() => {
     if (userRole !== 'admin') router.push('/');
     const saved = localStorage.getItem("campus_reels_playlist_id");
     if (saved) setPlaylistId(saved);
+
+    // Cargar Whatsapp desde Firebase (si existe)
+    get(ref(rtdb, 'settings/whatsapp')).then((snapshot) => {
+      if (snapshot.exists()) setWhatsapp(snapshot.val());
+    }).catch(console.error);
+
   }, [userRole, router]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     localStorage.setItem("campus_reels_playlist_id", playlistId);
-    alert("¡Configuración guardada exitosamente!");
+    try {
+      await setFirebase(ref(rtdb, 'settings/whatsapp'), whatsapp);
+      alert("¡Configuración guardada exitosamente en el servidor!");
+    } catch (error) {
+      console.error(error);
+      alert("Error guardando el número de WhatsApp. Modifica las reglas de seguridad de Firebase.");
+    }
   };
 
   if (userRole !== 'admin') return null;
@@ -106,6 +121,18 @@ export default function ConfiguracionAdminPage() {
                   <h3 className="text-lg font-bold">Comunicaciones y Notificaciones</h3>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4 p-6 rounded-3xl bg-secondary/10 border border-white/5 hover:border-primary/30 transition-colors col-span-full">
+                    <div>
+                      <p className="font-bold">Número de WhatsApp Principal (Soporte)</p>
+                      <p className="text-xs text-muted-foreground">Escribe el número completo con el código de país (Ej: 521XXXXXXXXXX). Este número sustituirá al predeterminado en la ventana de Iniciar Sesión para que los alumnos te contacten.</p>
+                    </div>
+                    <Input 
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      placeholder="Ej. 123456789" 
+                      className="bg-background/50 border-white/10 rounded-xl max-w-sm"
+                    />
+                  </div>
                   <div className="flex items-center justify-between p-6 rounded-3xl bg-secondary/10 border border-white/5">
                     <div className="flex items-center gap-3">
                       <Mail className="w-5 h-5 text-muted-foreground" />
