@@ -39,6 +39,7 @@ export default function LoginScreen() {
   const [passwordInput, setPasswordInput] = useState("");
   const [error, setError] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [firebaseUsers, setFirebaseUsers] = useState<UserData[]>(users);
   const { toast } = useToast();
   const { onLogin } = useAuth();
 
@@ -51,6 +52,16 @@ export default function LoginScreen() {
         }
       }).catch((e) => {
         console.warn("No se pudo obtener el whatsapp dinámico, usando por defecto.", e);
+      });
+
+      get(ref(rtdb, 'users')).then((snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const loadedUsers = Object.keys(data).map(k => data[k]);
+          setFirebaseUsers(loadedUsers);
+        }
+      }).catch((e) => {
+        console.warn("No se pudieron cargar usuarios de Firebase.", e);
       });
     } catch (e) {
       console.warn("Lectura fallida", e);
@@ -67,7 +78,7 @@ export default function LoginScreen() {
     setError("");
 
     // Buscamos el usuario ignorando mayúsculas y espacios innecesarios
-    const foundUser = users.find(
+    const foundUser = firebaseUsers.find(
       (u) => 
         u.username.toLowerCase().trim() === usernameInput.toLowerCase().trim() && 
         u.password === passwordInput.trim()

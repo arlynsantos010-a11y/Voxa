@@ -11,12 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, UserPlus, Search, MoreVertical, Shield, User, GraduationCap, Trash2, Key, UserCircle, Globe2 } from "lucide-react";
 import Link from "next/link";
 import { users as initialUsers, UserData } from "@/components/auth/login-screen";
+import { ref, get, set, remove } from "firebase/database";
+import { rtdb } from "@/lib/firebase";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { UserRole } from "@/app/page";
+
+const sanitizeKey = (key: string) => key.replace(/[.#$\[\]]/g, "_");
 
 export default function GestionUsuariosPage() {
   const { userRole } = useAuth();
@@ -34,7 +38,37 @@ export default function GestionUsuariosPage() {
   const [newLevel, setNewLevel] = useState<string>("A1");
 
   useEffect(() => {
-    if (userRole !== 'admin') router.push('/');
+    if (userRole !== 'admin') {
+      router.push('/');
+      return;
+    }
+
+    const fetchUsers = async () => {
+      try {
+        const snapshot = await get(ref(rtdb, 'users'));
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const loadedUsers = Object.keys(data).map(k => data[k]);
+          setUsers(loadedUsers);
+        } else {
+          // Si no hay usuarios en Firebase, usa e inicializa con los predeterminados
+          setUsers(initialUsers);
+          initialUsers.forEach(u => {
+            set(ref(rtdb, `users/${sanitizeKey(u.username)}`), u);
+          });
+        }
+      } catch (err) {
+        console.error("Error al cargar usuarios de Firebase (posiblemente falta de permisos):", err);
+        // Fallback robusto en caso de error de permisos para no vaciar la lista
+        toast({
+          variant: "destructive",
+          title: "Error de conexión",
+          description: "No se interactuó con Firebase. Revisa las reglas de seguridad.",
+        });
+      }
+    };
+
+    fetchUsers();
   }, [userRole, router]);
 
   const filteredUsers = users.filter(user => 
@@ -43,7 +77,7 @@ export default function GestionUsuariosPage() {
     (user.languages && user.languages.some(lang => lang.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newUsername || !newPassword) {
@@ -72,28 +106,47 @@ export default function GestionUsuariosPage() {
       level: newRole === 'student' ? newLevel : undefined
     };
 
-    setUsers([newUser, ...users]);
-    setIsModalOpen(false);
-    
-    // Reset fields
-    setNewUsername("");
-    setNewPassword("");
-    setNewRole("student");
-    setNewLanguage("Inglés");
-    setNewLevel("A1");
+    try {
+      await set(ref(rtdb, `users/${sanitizeKey(newUser.username)}`), newUser);
+      setUsers([newUser, ...users]);
+      setIsModalOpen(false);
+      
+      // Reset fields
+      setNewUsername("");
+      setNewPassword("");
+      setNewRole("student");
+      setNewLanguage("Inglés");
+      setNewLevel("A1");
 
-    toast({
-      title: "Usuario Creado",
-      description: `El usuario ${newUsername} ha sido añadido correctamente.`,
-    });
+      toast({
+        title: "Usuario Creado",
+        description: `El usuario ${newUsername} ha sido añadido correctamente.`,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Permiso denegado por Firebase",
+        description: "Revisa las reglas de seguridad (Rules) de tu Realtime Database.",
+      });
+    }
   };
 
-  const deleteUser = (username: string) => {
-    setUsers(users.filter(u => u.username !== username));
-    toast({
-      title: "Usuario Eliminado",
-      description: `Se ha eliminado a ${username} del sistema.`,
-    });
+  const deleteUser = async (username: string) => {
+    try {
+      await remove(ref(rtdb, `users/${sanitizeKey(username)}`));
+      setUsers(users.filter(u => u.username !== username));
+      toast({
+        title: "Usuario Eliminado",
+        description: `Se ha eliminado a ${username} del sistema.`,
+      });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar el usuario.",
+      });
+    }
   };
 
   const getRoleIcon = (role: string) => {
