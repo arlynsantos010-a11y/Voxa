@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { ArrowLeft, Plus, Video, Calendar as CalendarIcon, Link as LinkIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -12,9 +14,11 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/auth-context';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ref, get, push, set, remove } from "firebase/database";
+import { rtdb } from "@/lib/firebase";
 
 interface Clase {
-  id: number;
+  id: string | number;
   title: string;
   date: Date;
   link: string;
@@ -24,23 +28,100 @@ const initialClases: Clase[] = [
     { id: 1, title: "Clase de Repaso: Q&A", date: new Date(2025, 2, 15), link: "https://meet.google.com/xyz-abc-def" },
     { id: 2, title: "Presentación Proyecto Final", date: new Date(2025, 2, 22), link: "https://meet.google.com/ghi-jkl-mno" },
 ]
-
 export default function ClasesEnVivoPage() {
   const { toast } = useToast();
-  const { userRole } = useAuth();
-  const [clases, setClases] = useState<Clase[]>(initialClases);
+  const { userRole, username } = useAuth();
+  const [globalClases, setGlobalClases] = useState<Clase[]>([]);
+  const [personalClases, setPersonalClases] = useState<Clase[]>([]);
+  const [studentAssignments, setStudentAssignments] = useState<any[]>([]); // To show who gets what for professors
+  const [students, setStudents] = useState<any[]>([]);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   
   const [newClaseTitle, setNewClaseTitle] = useState("");
   const [newClaseLink, setNewClaseLink] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [targetStudent, setTargetStudent] = useState<string>("all"); // "all" or specific username
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Fetch Global Classes
+    const globalRef = ref(rtdb, 'classes/global');
+    get(globalRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const loaded: Clase[] = Object.keys(data).map(k => ({
+          ...data[k],
+          id: k,
+          date: new Date(data[k].date)
+        }));
+        setGlobalClases(loaded);
+      }
+    });
 
-  const handleCreate = () => {
+    if (userRole === 'student' && username) {
+      const fetchPersonalClases = async () => {
+        try {
+          const studentKey = username.replace(/[.#$\[\]]/g, "_");
+          const snapshot = await get(ref(rtdb, `users/${studentKey}/personalLinks`));
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            const loaded: Clase[] = Object.keys(data).map(k => ({
+              id: k,
+              title: data[k].title,
+              date: new Date(data[k].dateAdded),
+              link: data[k].url
+            }));
+            setPersonalClases(loaded);
+          }
+        } catch (err) {
+          console.error("Error fetching personal classes:", err);
+        }
+      };
+      fetchPersonalClases();
+    }
+
+    if (userRole === 'professor' || userRole === 'admin') {
+        // Fetch students for dropdown
+        get(ref(rtdb, 'users')).then((snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                setStudents(Object.values(data).filter((u: any) => u.role === 'student'));
+            }
+        });
+        
+        // Fetch all personal links from all students to show in professor view
+        // Note: For a real app, this might be better structured in a 'classes' root
+        // but for now we follow the existing pattern.
+        get(ref(rtdb, 'users')).then((snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const assignments: any[] = [];
+                Object.values(data).forEach((u: any) => {
+                    if (u.personalLinks) {
+                        Object.entries(u.personalLinks).forEach(([id, link]: [string, any]) => {
+                            assignments.push({
+                                ...link,
+                                id,
+                                date: new Date(link.dateAdded),
+                                target: u.username,
+                                link: link.url
+                            });
+                        });
+                    }
+                });
+                setStudentAssignments(assignments);
+            }
+        });
+    }
+  }, [userRole, username]);
+
+  const displayedClases = userRole === 'student' 
+    ? [...globalClases, ...personalClases].sort((a, b) => a.date.getTime() - b.date.getTime())
+    : [...globalClases, ...studentAssignments].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const handleCreate = async () => {
     if (!newClaseTitle || !newClaseLink || !selectedDate) {
       toast({
           variant: "destructive",
@@ -50,29 +131,64 @@ export default function ClasesEnVivoPage() {
       return;
     }
     
-    const newClase: Clase = {
-      id: clases.length + 1,
-      title: newClaseTitle,
-      date: selectedDate,
-      link: newClaseLink,
-    };
-    setClases(prevClases => [...prevClases, newClase].sort((a,b) => a.date.getTime() - b.date.getTime()));
-    toast({
-        title: "Clase Agendada",
-        description: `La clase "${newClaseTitle}" ha sido creada.`,
-    });
-    setNewClaseTitle("");
-    setNewClaseLink("");
-    setSelectedDate(new Date());
-    setCreateModalOpen(false);
+    try {
+        if (targetStudent === "all") {
+            const newGlobalRef = push(ref(rtdb, 'classes/global'));
+            const newClase = {
+                title: newClaseTitle,
+                date: selectedDate.toISOString(),
+                link: newClaseLink
+            };
+            await set(newGlobalRef, newClase);
+            setGlobalClases(prev => [...prev, { ...newClase, id: newGlobalRef.key as string, date: selectedDate }]);
+        } else {
+            const studentKey = targetStudent.replace(/[.#$\[\]]/g, "_");
+            const personalRef = push(ref(rtdb, `users/${studentKey}/personalLinks`));
+            const newClase = {
+                title: newClaseTitle,
+                url: newClaseLink,
+                dateAdded: selectedDate.toISOString()
+            };
+            await set(personalRef, newClase);
+            setStudentAssignments(prev => [...prev, { 
+                ...newClase, 
+                id: personalRef.key as string, 
+                date: selectedDate, 
+                target: targetStudent, 
+                link: newClaseLink 
+            }]);
+        }
+
+        toast({
+            title: "Clase Agendada",
+            description: `La clase para ${targetStudent === "all" ? "todos" : targetStudent} ha sido creada.`,
+        });
+        setNewClaseTitle("");
+        setNewClaseLink("");
+        setSelectedDate(new Date());
+        setTargetStudent("all");
+        setCreateModalOpen(false);
+    } catch (err) {
+        toast({ variant: "destructive", title: "Error", description: "No se pudo crear la clase." });
+    }
   }
 
-  const handleDelete = (claseId: number) => {
-    setClases(prevClases => prevClases.filter(c => c.id !== claseId));
-    toast({
-        title: "Clase Eliminada",
-        description: `La clase ha sido eliminada correctamente.`,
-    });
+  const handleDelete = async (clase: any) => {
+    try {
+        if (clase.target) {
+            // Personal link
+            const studentKey = clase.target.replace(/[.#$\[\]]/g, "_");
+            await remove(ref(rtdb, `users/${studentKey}/personalLinks/${clase.id}`));
+            setStudentAssignments(prev => prev.filter(c => c.id !== clase.id));
+        } else {
+            // Global link
+            await remove(ref(rtdb, `classes/global/${clase.id}`));
+            setGlobalClases(prev => prev.filter(c => c.id !== clase.id));
+        }
+        toast({ title: "Clase Eliminada" });
+    } catch (err) {
+        toast({ variant: "destructive", title: "Error" });
+    }
   }
 
   return (
@@ -103,15 +219,15 @@ export default function ClasesEnVivoPage() {
                           <CardTitle className="text-2xl font-headline font-bold">Próximas Sesiones</CardTitle>
                           <CardDescription>
                               {userRole === 'professor' 
-                                  ? "Administra el calendario de sesiones virtuales."
+                                  ? "Administra el calendario de sesiones virtuales globales y personalizadas."
                                   : "Únete a las clases programadas con un solo clic."
                               }
                           </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6 space-y-4">
                       <AnimatePresence>
-                        {clases.length > 0 ? (
-                            clases.map((clase) => (
+                        {displayedClases.length > 0 ? (
+                            displayedClases.map((clase) => (
                             <motion.div 
                               key={clase.id}
                               layout
@@ -126,7 +242,12 @@ export default function ClasesEnVivoPage() {
                                       <Video className="w-6 h-6" />
                                     </div>
                                     <div className="truncate">
-                                    <p className="text-lg font-bold truncate">{clase.title}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-lg font-bold truncate">{clase.title}</p>
+                                        {clase.target && (
+                                            <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-black uppercase">Para: {clase.target}</span>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-muted-foreground font-medium">
                                       {mounted ? `Fecha: ${format(clase.date, "PPP")}` : "Cargando fecha..."}
                                     </p>
@@ -139,7 +260,7 @@ export default function ClasesEnVivoPage() {
                                         </a>
                                     </Button>
                                     {userRole === 'professor' && (
-                                        <Button variant="ghost" size="icon" className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(clase.id)}>
+                                        <Button variant="ghost" size="icon" className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(clase)}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -187,7 +308,7 @@ export default function ClasesEnVivoPage() {
           </div>
         </main>
         
-        {userRole === 'professor' && (
+        {(userRole === 'professor' || userRole === 'admin') && (
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -212,6 +333,22 @@ export default function ClasesEnVivoPage() {
           </DialogHeader>
           <div className="py-6 space-y-4">
             <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Visibilidad / Alumno</Label>
+              <Select value={targetStudent} onValueChange={setTargetStudent}>
+                <SelectTrigger className="bg-secondary/20 border-white/5 h-12 rounded-xl">
+                  <SelectValue placeholder="Seleccionar destino" />
+                </SelectTrigger>
+                <SelectContent className="glass-card border-white/10">
+                  <SelectItem value="all">Todos los Alumnos (Global)</SelectItem>
+                  {students.map(s => (
+                    <SelectItem key={s.username} value={s.username}>
+                      Específico: {s.username}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nombre de la Clase</label>
               <Input 
                 placeholder="Ej: Clase de Repaso Semanal"
@@ -229,7 +366,7 @@ export default function ClasesEnVivoPage() {
                 className="bg-secondary/20 border-white/5 h-12 rounded-xl"
               />
             </div>
-            <div className="p-2 bg-secondary/20 border border-white/5 rounded-3xl flex justify-center">
+            <div className="p-2 bg-secondary/20 border border-white/5 rounded-3xl flex justify-center scale-90">
                 <Calendar
                     mode="single"
                     selected={selectedDate}

@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Video, Book, MessageSquare, ClipboardCheck, LayoutGrid, ChevronRight, Globe, Languages, Sparkles, PlaySquare } from 'lucide-react';
+import { ArrowLeft, Video, Book, MessageSquare, ClipboardCheck, LayoutGrid, ChevronRight, Globe, Languages, Sparkles, PlaySquare, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -59,7 +59,19 @@ export default function AulaVirtualPage() {
       href: '/aula-virtual/tareas',
       color: 'bg-orange-500/20 text-orange-500',
     },
+    {
+      title: 'Gestión de Alumnos',
+      desc: 'Asigna enlaces de clase y materiales personalizados por alumno.',
+      icon: Users,
+      href: '/aula-virtual/gestion-alumnos',
+      color: 'bg-indigo-500/20 text-indigo-500',
+      role: 'professor'
+    },
   ];
+
+  const filteredSections = sections.filter(section => 
+    !section.role || section.role === userRole
+  );
 
   if (userRole === 'student' && enrolledLanguages.length > 1 && !selectedLanguage) {
     return (
@@ -132,7 +144,7 @@ export default function AulaVirtualPage() {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-6 max-w-6xl mx-auto">
-          {sections.map((section, idx) => {
+          {filteredSections.map((section, idx) => {
             const Icon = section.icon;
             const content = (
               <div className="glass-card group relative p-8 rounded-3xl h-full border-white/5 hover:border-primary/40 transition-all duration-300 cursor-pointer overflow-hidden">
