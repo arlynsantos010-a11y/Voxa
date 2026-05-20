@@ -436,68 +436,67 @@ export default function ClasesEnVivoPage() {
       </div>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="sm:max-w-[1000px] glass-card border-white/10 rounded-[3rem] p-0 overflow-hidden shadow-2xl">
-          <div className="bg-primary/5 p-8 border-b border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
-                  <CalendarDays className="w-7 h-7" />
+        <DialogContent className="sm:max-w-[1100px] bg-slate-950/40 backdrop-blur-[50px] border-white/5 rounded-[4rem] p-0 overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.8)] ring-1 ring-white/10">
+          <div className="bg-gradient-to-b from-primary/10 to-transparent p-10 border-b border-white/5 flex items-center justify-between relative overflow-hidden group">
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity blur-3xl -z-10" />
+            <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shadow-2xl shadow-primary/20 border border-primary/20 transform hover:scale-110 transition-transform">
+                  <CalendarDays className="w-9 h-9" />
                 </div>
                 <div>
-                    <DialogTitle className="text-primary font-headline text-2xl font-bold tracking-tight">Seleccionar fecha y horario</DialogTitle>
-                    <DialogDescription className="text-muted-foreground">Elige el día y la hora que mejor te convenga.</DialogDescription>
+                    <DialogTitle className="text-foreground font-headline text-3xl font-black tracking-tight leading-none mb-2">Programar Sesión</DialogTitle>
+                    <DialogDescription className="text-muted-foreground/60 text-base font-medium">Define los horarios y destinatarios para tus próximas clases.</DialogDescription>
                 </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setCreateModalOpen(false)} className="rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors">
+            <Button variant="ghost" size="icon" onClick={() => setCreateModalOpen(false)} className="rounded-full h-12 w-12 hover:bg-destructive/10 hover:text-destructive transition-all active:scale-90">
                 <XCircle className="w-8 h-8" />
             </Button>
           </div>
           
-          <div className="p-10 grid lg:grid-cols-[1.2fr_1fr] gap-12 max-h-[80vh] overflow-y-auto custom-scrollbar">
+          <div className="p-12 grid lg:grid-cols-[1.2fr_1fr] gap-16 max-h-[80vh] overflow-y-auto custom-scrollbar bg-slate-900/10">
             {/* Left Column: Calendar & Inputs */}
-            <div className="space-y-8">
-                <div className="grid sm:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Destinatario</Label>
+            <div className="space-y-10">
+                <div className="grid sm:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/80 ml-2">Destinatario</Label>
                         <Select value={targetStudent} onValueChange={setTargetStudent}>
-                          <SelectTrigger className="bg-secondary/10 border-white/5 h-14 rounded-2xl focus:ring-primary/40 text-sm font-medium">
+                          <SelectTrigger className="bg-white/5 border-white/5 h-16 rounded-[1.5rem] focus:ring-primary/40 text-sm font-bold shadow-inner hover:bg-white/10 transition-all border-l-4 border-l-primary/30">
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
-                          <SelectContent className="glass-card border-white/10 rounded-2xl bg-slate-900/95 backdrop-blur-xl">
-                            <SelectItem value="all">Todos los Alumnos</SelectItem>
+                          <SelectContent className="bg-slate-900/95 backdrop-blur-[100px] border-white/10 rounded-[1.5rem] p-2 shadow-2xl">
+                            <SelectItem value="all" className="rounded-xl py-3 hover:bg-primary/20">Todos los Alumnos</SelectItem>
                             {students.map(s => (
-                              <SelectItem key={s.username} value={s.username}>
+                              <SelectItem key={s.username} value={s.username} className="rounded-xl py-3">
                                 {s.username}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                     </div>
-                </div>
 
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                      <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Título de la Sesión</Label>
+                    <div className="space-y-4">
+                      <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/80 ml-2">Título de la Sesión</Label>
                       <Input 
                           placeholder="Ej: Masterclass de Vocabulario"
                           value={newClaseTitle}
                           onChange={(e) => setNewClaseTitle(e.target.value)}
-                          className="bg-secondary/10 border-white/5 h-14 rounded-2xl focus:ring-primary/40 text-sm"
+                          className="bg-white/5 border-white/5 h-16 rounded-[1.5rem] focus:ring-primary/40 text-sm font-bold shadow-inner placeholder:text-muted-foreground/30 px-6 border-l-4 border-l-primary/30"
                       />
-                  </div>
-
-                  <div className="space-y-3">
-                      <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Link de Reunión</Label>
-                      <Input 
-                          placeholder="https://meet.google.com/..."
-                          value={newClaseLink}
-                          onChange={(e) => setNewClaseLink(e.target.value)}
-                          className="bg-secondary/10 border-white/5 h-14 rounded-2xl focus:ring-primary/40 text-sm"
-                      />
-                  </div>
+                    </div>
                 </div>
 
-                <div className="p-8 bg-secondary/5 border border-white/5 rounded-[3rem] shadow-inner relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:bg-primary/10" />
+                <div className="space-y-4">
+                    <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/80 ml-2">Link de Reunión</Label>
+                    <Input 
+                        placeholder="https://meet.google.com/..."
+                        value={newClaseLink}
+                        onChange={(e) => setNewClaseLink(e.target.value)}
+                        className="bg-white/5 border-white/5 h-16 rounded-[1.5rem] focus:ring-primary/40 text-sm font-bold shadow-inner px-6 border-l-4 border-l-primary/30"
+                    />
+                </div>
+
+                <div className="p-10 bg-white/[0.02] border border-white/5 rounded-[3.5rem] shadow-[inset_0_0_40px_rgba(255,255,255,0.02)] relative overflow-hidden group/cal">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32 opacity-20 group-hover/cal:opacity-40 transition-opacity" />
                     <Calendar
                         mode="multiple"
                         selected={currentSelectedDates}
@@ -510,44 +509,45 @@ export default function ClasesEnVivoPage() {
                         }}
                         classNames={{
                             months: "w-full",
-                            month: "w-full space-y-6",
-                            caption: "flex justify-center pt-2 relative items-center mb-8",
-                            caption_label: "text-xl font-black text-foreground tracking-tight",
-                            nav: "space-x-1 flex items-center",
-                            nav_button: "h-10 w-10 bg-secondary/20 p-0 opacity-70 hover:opacity-100 rounded-xl transition-all hover:bg-primary/20 hover:text-primary",
-                            nav_button_previous: "absolute left-2",
-                            nav_button_next: "absolute right-2",
+                            month: "w-full space-y-10",
+                            caption: "flex justify-center pt-2 relative items-center mb-10",
+                            caption_label: "text-2xl font-black text-foreground tracking-tighter uppercase",
+                            nav: "space-x-2 flex items-center",
+                            nav_button: "h-12 w-12 bg-white/5 p-0 opacity-70 hover:opacity-100 rounded-2xl transition-all hover:bg-primary/20 hover:text-primary border border-white/5 hover:border-primary/20 shadow-xl active:scale-90",
+                            nav_button_previous: "absolute left-4",
+                            nav_button_next: "absolute right-4",
                             table: "w-full border-collapse",
-                            head_row: "flex w-full mb-6 justify-between px-2",
-                            head_cell: "text-muted-foreground/60 w-12 font-black text-[10px] uppercase tracking-[0.2em] text-center",
-                            row: "flex w-full mt-3 justify-between px-1",
-                            cell: "relative p-0 text-center text-sm w-12 h-12 flex items-center justify-center",
-                            day: "h-11 w-11 p-0 font-bold hover:bg-primary/10 rounded-2xl transition-all flex items-center justify-center m-auto text-base",
-                            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-black shadow-lg shadow-primary/40 scale-110 relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-white after:rounded-full",
-                            day_today: "bg-secondary text-primary font-black ring-1 ring-primary/20",
-                            day_outside: "text-muted-foreground opacity-10 blur-[1px]",
+                            head_row: "flex w-full mb-8 justify-between px-4",
+                            head_cell: "text-muted-foreground/40 w-14 font-black text-[11px] uppercase tracking-[0.4em] text-center",
+                            row: "flex w-full mt-4 justify-between px-2",
+                            cell: "relative p-0 text-center text-sm w-14 h-14 flex items-center justify-center transition-all",
+                            day: "h-12 w-12 p-0 font-bold hover:bg-white/10 rounded-[1.25rem] transition-all flex items-center justify-center m-auto text-lg hover:scale-110 active:scale-95",
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-[1.25rem] font-black shadow-[0_12px_24px_-8px_rgba(var(--primary),0.8)] scale-110 relative border border-white/20 after:content-[''] after:absolute after:-bottom-1.5 after:w-1.5 after:h-1.5 after:bg-white/50 after:rounded-full after:animate-pulse",
+                            day_today: "bg-white/10 text-primary font-black ring-2 ring-primary/40",
+                            day_outside: "text-muted-foreground/10 blur-[2px] pointer-events-none",
+                            day_disabled: "opacity-20 pointer-events-none",
                         }}
                     />
-                    <div className="flex flex-wrap justify-center gap-6 mt-8 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" /> Día seleccionado
+                    <div className="flex flex-wrap justify-center gap-8 mt-12 text-[10px] font-black uppercase tracking-[0.3em] opacity-40">
+                        <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-primary shadow-[0_0_12px_rgba(var(--primary),0.8)] animate-pulse" /> Seleccionado
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-primary/20 ring-1 ring-primary/30" /> Día con sesión
+                        <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-primary/20 ring-1 ring-primary/40" /> Con Clase
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Right Column: Time Slots & Summary */}
-            <div className="space-y-8 lg:border-l lg:border-white/5 lg:pl-12">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-primary">
-                      <Clock className="w-5 h-5" />
-                      <Label className="text-lg font-black tracking-tight uppercase">Horario</Label>
+            <div className="space-y-10 lg:border-l lg:border-white/5 lg:pl-16">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-primary">
+                      <Clock className="w-6 h-6" />
+                      <Label className="text-xl font-black tracking-[0.1em] uppercase">Horarios</Label>
                   </div>
-                  <p className="text-[11px] text-muted-foreground font-medium">
-                      Sesiones para: <span className="text-primary font-bold">{currentSelectedDates && currentSelectedDates.length > 0 ? (currentSelectedDates.length === 1 ? format(currentSelectedDates[0], "d 'de' MMMM", { locale: es }) : `${currentSelectedDates.length} días seleccionados`) : "Ningún día seleccionado"}</span>
+                  <p className="text-[12px] text-muted-foreground/60 font-bold uppercase tracking-widest pl-9">
+                      Para <span className="text-primary font-black">{currentSelectedDates && currentSelectedDates.length > 0 ? (currentSelectedDates.length === 1 ? format(currentSelectedDates[0], "d 'de' MMMM", { locale: es }) : `${currentSelectedDates.length} Días ELEGIDOS`) : "SELECCIONA FECHA"}</span>
                   </p>
                 </div>
 
@@ -565,62 +565,64 @@ export default function ClasesEnVivoPage() {
                             <Button
                                 key={time}
                                 variant={isSelectedInAll ? "default" : isSelectedInAny ? "secondary" : "outline"}
-                                className={`h-14 rounded-2xl text-sm font-black transition-all duration-300 border-white/5 ${isSelectedInAll ? "shadow-[0_8px_20px_-6px_rgba(var(--primary),0.5)] scale-105" : "bg-white/5 hover:bg-primary/10 hover:border-primary/30 active:scale-95"}`}
+                                className={`h-16 rounded-[1.25rem] text-sm font-black transition-all duration-300 border-white/5 shadow-lg ${isSelectedInAll ? "shadow-[0_12px_25px_-10px_rgba(var(--primary),0.6)] scale-105 ring-2 ring-primary/20" : "bg-white/5 hover:bg-primary/10 hover:border-primary/40 hover:scale-105 active:scale-95"}`}
                                 onClick={() => toggleTimeSlot(time)}
                             >
                                 {time}
-                                {isSelectedInAll && <CheckCircle2 className="w-4 h-4 ml-2 animate-in zoom-in duration-300" />}
+                                {isSelectedInAll && <CheckCircle2 className="w-4 h-4 ml-2 animate-in zoom-in duration-500" />}
                             </Button>
                         );
                     })}
                 </div>
 
-                <div className="pt-8 border-t border-white/5 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-base font-black tracking-tight flex items-center gap-2 uppercase">
-                            <History className="w-5 h-5 text-primary" /> Resumen
+                <div className="pt-10 border-t border-white/5 space-y-8">
+                    <div className="flex items-center justify-between pr-4">
+                        <Label className="text-lg font-black tracking-[0.2em] flex items-center gap-3 uppercase text-primary/90">
+                            <History className="w-6 h-6" /> Itinerario
                         </Label>
                         {selectedPairs.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedPairs([])} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors">
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedPairs([])} className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-destructive transition-all hover:bg-destructive/5 px-4 rounded-xl">
                                 Limpiar todo
                             </Button>
                         )}
                     </div>
 
-                    <div className="bg-primary/5 rounded-[2.5rem] border border-white/5 p-8 space-y-4 min-h-[160px] max-h-[300px] overflow-y-auto custom-scrollbar shadow-inner">
+                    <div className="bg-black/20 rounded-[3rem] border border-white/5 p-10 space-y-4 min-h-[200px] max-h-[350px] overflow-y-auto custom-scrollbar shadow-[inset_0_4px_20px_rgba(0,0,0,0.4)] relative">
                         {selectedPairs.length > 0 ? (
-                            <div className="grid gap-3">
+                            <div className="grid gap-4">
                                 {selectedPairs.sort((a, b) => a.date.getTime() - b.date.getTime()).map((pair, idx) => (
                                     <motion.div 
-                                      initial={{ opacity: 0, x: -10 }}
-                                      animate={{ opacity: 1, x: 0 }}
+                                      initial={{ opacity: 0, y: 15 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: idx * 0.05 }}
                                       key={`${pair.date.toISOString()}-${pair.time}`} 
-                                      className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all hover:translate-x-1"
+                                      className="flex items-center justify-between bg-white/[0.03] p-5 rounded-[1.5rem] border border-white/[0.05] group hover:bg-white/[0.07] transition-all hover:scale-[1.02] shadow-xl"
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                              <CalendarDays className="w-5 h-5" />
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-all border border-primary/10">
+                                              <CalendarDays className="w-6 h-6" />
                                             </div>
                                             <div>
-                                                <p className="text-[13px] font-bold text-foreground/90 capitalize">
-                                                  {format(pair.date, "EEEE d 'de' MMMM", { locale: es })}
+                                                <p className="text-sm font-black text-foreground capitalize tracking-tight">
+                                                  {format(pair.date, "EEEE d", { locale: es })}
+                                                  <span className="text-muted-foreground/40 ml-2 font-medium">{format(pair.date, "MMMM", { locale: es })}</span>
                                                 </p>
-                                                <p className="text-[11px] text-primary font-black tracking-wider">{pair.time} HRS</p>
+                                                <p className="text-[12px] text-primary font-black tracking-[0.2em] mt-1">{pair.time} HRS</p>
                                             </div>
                                         </div>
                                         <button 
                                           onClick={() => removePair(idx)} 
-                                          className="opacity-0 group-hover:opacity-100 transition-all p-2 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive hover:text-white"
+                                          className="opacity-0 group-hover:opacity-100 transition-all p-3 bg-destructive/10 text-destructive rounded-2xl hover:bg-destructive hover:text-white shadow-lg active:scale-95"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="w-5 h-5" />
                                         </button>
                                     </motion.div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full opacity-20 py-8">
-                                <Info className="w-12 h-12 mb-4" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-center leading-relaxed">Selecciona fechas y horas <br/> para ver el resumen</p>
+                            <div className="flex flex-col items-center justify-center h-full opacity-10 py-12">
+                                <Video className="w-20 h-20 mb-6" />
+                                <p className="text-[11px] font-black uppercase tracking-[0.4em] text-center leading-loose">Configura el horario <br/> para visualizar el itinerario</p>
                             </div>
                         )}
                     </div>
@@ -628,16 +630,22 @@ export default function ClasesEnVivoPage() {
             </div>
           </div>
 
-          <div className="p-10 bg-secondary/5 border-t border-white/5 flex flex-col sm:flex-row gap-6 items-center justify-end px-12">
-            <Button variant="ghost" onClick={() => setCreateModalOpen(false)} className="rounded-2xl h-16 px-10 font-bold text-muted-foreground hover:text-foreground transition-all hover:bg-white/5">
-                Cancelar
+          <div className="p-12 bg-gradient-to-t from-black/40 to-transparent border-t border-white/5 flex flex-col sm:flex-row gap-8 items-center justify-end px-16 relative">
+            <div className="absolute left-16 hidden lg:flex items-center gap-4 text-muted-foreground/30 text-xs font-black uppercase tracking-[0.3em]">
+                <Info className="w-5 h-5" />
+                Los cambios se guardarán permanentemente
+            </div>
+            <Button variant="ghost" onClick={() => setCreateModalOpen(false)} className="rounded-[1.5rem] h-16 px-12 font-bold text-muted-foreground hover:text-foreground transition-all hover:bg-white/5 active:scale-95 border border-transparent hover:border-white/5">
+                Descartar
             </Button>
             <Button 
                 onClick={handleCreate} 
                 disabled={!newClaseTitle || !newClaseLink || selectedPairs.length === 0} 
-                className="rounded-2xl h-16 px-14 font-black shadow-[0_20px_40px_-12px_rgba(var(--primary),0.4)] min-w-[280px] uppercase tracking-[0.2em] text-xs group active:scale-95 transition-all"
+                className="rounded-[1.75rem] h-20 px-16 font-black shadow-[0_25px_60px_-12px_rgba(var(--primary),0.5)] min-w-[320px] uppercase tracking-[0.3em] text-sm group active:scale-[0.98] transition-all relative overflow-hidden"
             >
-                Confirmar Cita {selectedPairs.length > 0 && <span className="ml-3 bg-white/20 px-3 py-1 rounded-lg tabular-nums animate-in zoom-in duration-500">{selectedPairs.length}</span>}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
+                <span className="relative z-10">Confirmar Reserva </span>
+                {selectedPairs.length > 0 && <span className="relative z-10 ml-4 bg-black/30 px-4 py-2 rounded-xl tabular-nums animate-in slide-in-from-bottom-2 duration-500">{selectedPairs.length}</span>}
             </Button>
           </div>
         </DialogContent>
