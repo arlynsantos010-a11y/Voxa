@@ -54,7 +54,7 @@ export default function ClasesEnVivoPage() {
   // New States for UI Overhaul
   const [newClaseTitle, setNewClaseTitle] = useState("");
   const [newClaseLink, setNewClaseLink] = useState("");
-  const [currentSelectedDate, setCurrentSelectedDate] = useState<Date | undefined>(new Date());
+  const [currentSelectedDates, setCurrentSelectedDates] = useState<Date[] | undefined>([]);
   const [selectedPairs, setSelectedPairs] = useState<SelectedPair[]>([]);
   const [targetStudent, setTargetStudent] = useState<string>("all");
   
@@ -134,14 +134,27 @@ export default function ClasesEnVivoPage() {
   }, [allDisplayedClases]);
 
   const toggleTimeSlot = (time: string) => {
-    if (!currentSelectedDate) return;
-    
-    const exists = selectedPairs.find(p => isSameDay(p.date, currentSelectedDate) && p.time === time);
-    if (exists) {
-        setSelectedPairs(prev => prev.filter(p => !(isSameDay(p.date, currentSelectedDate) && p.time === time)));
-    } else {
-        setSelectedPairs(prev => [...prev, { date: new Date(currentSelectedDate), time }]);
+    if (!currentSelectedDates || currentSelectedDates.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "Selecciona al menos un día",
+            description: "Elige uno o varios días en el calendario para asignarles este horario.",
+        });
+        return;
     }
+    
+    setSelectedPairs(prev => {
+        let next = [...prev];
+        currentSelectedDates.forEach(date => {
+            const exists = next.find(p => isSameDay(p.date, date) && p.time === time);
+            if (exists) {
+                next = next.filter(p => !(isSameDay(p.date, date) && p.time === time));
+            } else {
+                next.push({ date: new Date(date), time });
+            }
+        });
+        return next;
+    });
   };
 
   const removePair = (index: number) => {
@@ -434,22 +447,22 @@ export default function ClasesEnVivoPage() {
                     <DialogDescription className="text-muted-foreground">Elige el día y la hora que mejor te convenga.</DialogDescription>
                 </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setCreateModalOpen(false)} className="rounded-full">
-                <XCircle className="w-6 h-6 text-muted-foreground" />
+            <Button variant="ghost" size="icon" onClick={() => setCreateModalOpen(false)} className="rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors">
+                <XCircle className="w-8 h-8" />
             </Button>
           </div>
           
-          <div className="p-8 grid lg:grid-cols-2 gap-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
+          <div className="p-10 grid lg:grid-cols-[1.2fr_1fr] gap-12 max-h-[80vh] overflow-y-auto custom-scrollbar">
             {/* Left Column: Calendar & Inputs */}
-            <div className="space-y-6">
-                <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-wider text-primary/60 ml-1">Destinatario</Label>
+            <div className="space-y-8">
+                <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                        <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Destinatario</Label>
                         <Select value={targetStudent} onValueChange={setTargetStudent}>
-                          <SelectTrigger className="bg-secondary/10 border-white/10 h-12 rounded-xl focus:ring-primary/40">
+                          <SelectTrigger className="bg-secondary/10 border-white/5 h-14 rounded-2xl focus:ring-primary/40 text-sm font-medium">
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
-                          <SelectContent className="glass-card border-white/10 rounded-xl">
+                          <SelectContent className="glass-card border-white/10 rounded-2xl bg-slate-900/95 backdrop-blur-xl">
                             <SelectItem value="all">Todos los Alumnos</SelectItem>
                             {students.map(s => (
                               <SelectItem key={s.username} value={s.username}>
@@ -461,127 +474,153 @@ export default function ClasesEnVivoPage() {
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-wider text-primary/60 ml-1">Título de la Sesión</Label>
-                    <Input 
-                        placeholder="Ej: Masterclass de Vocabulario"
-                        value={newClaseTitle}
-                        onChange={(e) => setNewClaseTitle(e.target.value)}
-                        className="bg-secondary/10 border-white/10 h-12 rounded-xl focus:ring-primary/40"
-                    />
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                      <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Título de la Sesión</Label>
+                      <Input 
+                          placeholder="Ej: Masterclass de Vocabulario"
+                          value={newClaseTitle}
+                          onChange={(e) => setNewClaseTitle(e.target.value)}
+                          className="bg-secondary/10 border-white/5 h-14 rounded-2xl focus:ring-primary/40 text-sm"
+                      />
+                  </div>
+
+                  <div className="space-y-3">
+                      <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Link de Reunión</Label>
+                      <Input 
+                          placeholder="https://meet.google.com/..."
+                          value={newClaseLink}
+                          onChange={(e) => setNewClaseLink(e.target.value)}
+                          className="bg-secondary/10 border-white/5 h-14 rounded-2xl focus:ring-primary/40 text-sm"
+                      />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-wider text-primary/60 ml-1">Link de Reunión</Label>
-                    <Input 
-                        placeholder="https://meet.google.com/..."
-                        value={newClaseLink}
-                        onChange={(e) => setNewClaseLink(e.target.value)}
-                        className="bg-secondary/10 border-white/10 h-12 rounded-xl focus:ring-primary/40"
-                    />
-                </div>
-
-                <div className="p-6 bg-secondary/5 border border-white/10 rounded-3xl">
+                <div className="p-8 bg-secondary/5 border border-white/5 rounded-[3rem] shadow-inner relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:bg-primary/10" />
                     <Calendar
-                        mode="single"
-                        selected={currentSelectedDate}
-                        onSelect={setCurrentSelectedDate}
+                        mode="multiple"
+                        selected={currentSelectedDates}
+                        onSelect={setCurrentSelectedDates}
                         locale={es}
                         initialFocus
                         className="w-full flex justify-center"
+                        formatters={{
+                          formatWeekdayName: (date) => format(date, "EEE", { locale: es }).replace('.', '').toUpperCase(),
+                        }}
                         classNames={{
                             months: "w-full",
-                            month: "w-full space-y-4",
-                            caption: "flex justify-center pt-1 relative items-center mb-4",
-                            caption_label: "text-lg font-bold text-foreground/80",
+                            month: "w-full space-y-6",
+                            caption: "flex justify-center pt-2 relative items-center mb-8",
+                            caption_label: "text-xl font-black text-foreground tracking-tight",
                             nav: "space-x-1 flex items-center",
-                            nav_button: "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100",
-                            nav_button_previous: "absolute left-1",
-                            nav_button_next: "absolute right-1",
+                            nav_button: "h-10 w-10 bg-secondary/20 p-0 opacity-70 hover:opacity-100 rounded-xl transition-all hover:bg-primary/20 hover:text-primary",
+                            nav_button_previous: "absolute left-2",
+                            nav_button_next: "absolute right-2",
                             table: "w-full border-collapse",
-                            head_row: "flex w-full mb-2 justify-between",
-                            head_cell: "text-muted-foreground w-10 font-bold text-[10px] uppercase",
-                            row: "flex w-full mt-2 justify-between",
-                            cell: "relative p-0 text-center text-sm w-10 h-10",
-                            day: "h-10 w-10 p-0 font-medium hover:bg-primary/20 rounded-xl transition-all flex items-center justify-center",
-                            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold scale-110",
-                            day_today: "bg-secondary text-foreground font-black ring-1 ring-primary/30",
-                            day_outside: "text-muted-foreground opacity-20",
+                            head_row: "flex w-full mb-6 justify-between px-2",
+                            head_cell: "text-muted-foreground/60 w-12 font-black text-[10px] uppercase tracking-[0.2em] text-center",
+                            row: "flex w-full mt-3 justify-between px-1",
+                            cell: "relative p-0 text-center text-sm w-12 h-12 flex items-center justify-center",
+                            day: "h-11 w-11 p-0 font-bold hover:bg-primary/10 rounded-2xl transition-all flex items-center justify-center m-auto text-base",
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-black shadow-lg shadow-primary/40 scale-110 relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-white after:rounded-full",
+                            day_today: "bg-secondary text-primary font-black ring-1 ring-primary/20",
+                            day_outside: "text-muted-foreground opacity-10 blur-[1px]",
                         }}
                     />
-                    <div className="flex justify-center gap-4 mt-6 text-[10px] font-bold uppercase tracking-widest opacity-60">
+                    <div className="flex flex-wrap justify-center gap-6 mt-8 text-[10px] font-black uppercase tracking-[0.2em] opacity-50">
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-primary" /> Día seleccionado
+                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" /> Día seleccionado
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-primary/20 ring-1 ring-primary/40" /> Día con horario
+                            <div className="w-2.5 h-2.5 rounded-full bg-primary/20 ring-1 ring-primary/30" /> Día con sesión
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Right Column: Time Slots & Summary */}
-            <div className="space-y-6 border-l border-white/5 pl-8">
-                <div className="flex items-center gap-2 text-primary">
-                    <Clock className="w-5 h-5" />
-                    <Label className="text-base font-bold">Seleccionar horario</Label>
+            <div className="space-y-8 lg:border-l lg:border-white/5 lg:pl-12">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-primary">
+                      <Clock className="w-5 h-5" />
+                      <Label className="text-lg font-black tracking-tight uppercase">Horario</Label>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground font-medium">
+                      Sesiones para: <span className="text-primary font-bold">{currentSelectedDates && currentSelectedDates.length > 0 ? (currentSelectedDates.length === 1 ? format(currentSelectedDates[0], "d 'de' MMMM", { locale: es }) : `${currentSelectedDates.length} días seleccionados`) : "Ningún día seleccionado"}</span>
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground -mt-4">
-                    Horarios disponibles para el <span className="text-primary font-bold">{currentSelectedDate ? format(currentSelectedDate, "d 'de' MMMM", { locale: es }) : "..."}</span>
-                </p>
 
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-4 gap-4">
                     {TIME_SLOTS.map(time => {
-                        const isSelected = selectedPairs.find(p => isSameDay(p.date, currentSelectedDate!) && p.time === time);
+                        const isSelectedInAny = currentSelectedDates?.some(date => 
+                          selectedPairs.some(p => isSameDay(p.date, date) && p.time === time)
+                        );
+                        
+                        const isSelectedInAll = currentSelectedDates?.length ? currentSelectedDates.every(date => 
+                          selectedPairs.some(p => isSameDay(p.date, date) && p.time === time)
+                        ) : false;
+
                         return (
                             <Button
                                 key={time}
-                                variant={isSelected ? "default" : "outline"}
-                                className={`h-12 rounded-xl text-sm font-bold transition-all ${isSelected ? "shadow-lg shadow-primary/30" : "bg-secondary/10 border-white/5 hover:bg-primary/10 hover:border-primary/30"}`}
+                                variant={isSelectedInAll ? "default" : isSelectedInAny ? "secondary" : "outline"}
+                                className={`h-14 rounded-2xl text-sm font-black transition-all duration-300 border-white/5 ${isSelectedInAll ? "shadow-[0_8px_20px_-6px_rgba(var(--primary),0.5)] scale-105" : "bg-white/5 hover:bg-primary/10 hover:border-primary/30 active:scale-95"}`}
                                 onClick={() => toggleTimeSlot(time)}
                             >
                                 {time}
-                                {isSelected && <CheckCircle2 className="w-3 h-3 ml-1.5" />}
+                                {isSelectedInAll && <CheckCircle2 className="w-4 h-4 ml-2 animate-in zoom-in duration-300" />}
                             </Button>
                         );
                     })}
                 </div>
 
-                <div className="pt-6 border-t border-white/5 space-y-4">
+                <div className="pt-8 border-t border-white/5 space-y-6">
                     <div className="flex items-center justify-between">
-                        <Label className="text-base font-bold flex items-center gap-2">
-                            <History className="w-5 h-5 text-primary" /> Resumen de Clases
+                        <Label className="text-base font-black tracking-tight flex items-center gap-2 uppercase">
+                            <History className="w-5 h-5 text-primary" /> Resumen
                         </Label>
                         {selectedPairs.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedPairs([])} className="text-xs text-muted-foreground hover:text-destructive">
-                                Limpiar selección
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedPairs([])} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors">
+                                Limpiar todo
                             </Button>
                         )}
                     </div>
 
-                    <div className="bg-secondary/10 rounded-2.5rem border border-white/5 p-6 space-y-3 min-h-[120px] max-h-[200px] overflow-y-auto custom-scrollbar">
+                    <div className="bg-primary/5 rounded-[2.5rem] border border-white/5 p-8 space-y-4 min-h-[160px] max-h-[300px] overflow-y-auto custom-scrollbar shadow-inner">
                         {selectedPairs.length > 0 ? (
-                            <div className="grid gap-2">
+                            <div className="grid gap-3">
                                 {selectedPairs.sort((a, b) => a.date.getTime() - b.date.getTime()).map((pair, idx) => (
-                                    <div key={idx} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5 group">
-                                        <div className="flex items-center gap-3">
-                                            <CalendarDays className="w-4 h-4 text-primary" />
-                                            <p className="text-xs font-medium">
-                                                <span className="font-bold text-foreground/90">{format(pair.date, "EEEE d", { locale: es })}</span>
-                                                <span className="mx-2 text-muted-foreground">|</span>
-                                                <span className="text-primary font-black">{pair.time}</span>
-                                            </p>
+                                    <motion.div 
+                                      initial={{ opacity: 0, x: -10 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      key={`${pair.date.toISOString()}-${pair.time}`} 
+                                      className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all hover:translate-x-1"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                              <CalendarDays className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[13px] font-bold text-foreground/90 capitalize">
+                                                  {format(pair.date, "EEEE d 'de' MMMM", { locale: es })}
+                                                </p>
+                                                <p className="text-[11px] text-primary font-black tracking-wider">{pair.time} HRS</p>
+                                            </div>
                                         </div>
-                                        <button onClick={() => removePair(idx)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-destructive">
-                                            <XCircle className="w-4 h-4" />
+                                        <button 
+                                          onClick={() => removePair(idx)} 
+                                          className="opacity-0 group-hover:opacity-100 transition-all p-2 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive hover:text-white"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
                                         </button>
-                                    </div>
+                                    </motion.div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full opacity-30">
-                                <Info className="w-8 h-8 mb-2" />
-                                <p className="text-xs font-bold uppercase tracking-widest text-center">Selecciona fechas y horas <br/> para ver el resumen</p>
+                            <div className="flex flex-col items-center justify-center h-full opacity-20 py-8">
+                                <Info className="w-12 h-12 mb-4" />
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-center leading-relaxed">Selecciona fechas y horas <br/> para ver el resumen</p>
                             </div>
                         )}
                     </div>
@@ -589,16 +628,16 @@ export default function ClasesEnVivoPage() {
             </div>
           </div>
 
-          <div className="p-8 bg-secondary/5 border-t border-white/5 flex flex-col sm:flex-row gap-4 items-center justify-end">
-            <Button variant="ghost" onClick={() => setCreateModalOpen(false)} className="rounded-xl h-14 px-8 font-bold text-muted-foreground hover:text-foreground">
+          <div className="p-10 bg-secondary/5 border-t border-white/5 flex flex-col sm:flex-row gap-6 items-center justify-end px-12">
+            <Button variant="ghost" onClick={() => setCreateModalOpen(false)} className="rounded-2xl h-16 px-10 font-bold text-muted-foreground hover:text-foreground transition-all hover:bg-white/5">
                 Cancelar
             </Button>
             <Button 
                 onClick={handleCreate} 
                 disabled={!newClaseTitle || !newClaseLink || selectedPairs.length === 0} 
-                className="rounded-xl h-14 px-12 font-black shadow-2xl shadow-primary/30 min-w-[240px] uppercase tracking-widest text-sm"
+                className="rounded-2xl h-16 px-14 font-black shadow-[0_20px_40px_-12px_rgba(var(--primary),0.4)] min-w-[280px] uppercase tracking-[0.2em] text-xs group active:scale-95 transition-all"
             >
-                Confirmar y Crear {selectedPairs.length} {selectedPairs.length === 1 ? 'Sesión' : 'Sesiones'}
+                Confirmar Cita {selectedPairs.length > 0 && <span className="ml-3 bg-white/20 px-3 py-1 rounded-lg tabular-nums animate-in zoom-in duration-500">{selectedPairs.length}</span>}
             </Button>
           </div>
         </DialogContent>
