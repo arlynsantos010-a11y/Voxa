@@ -333,19 +333,13 @@ export default function ClasesEnVivoPage() {
                             locale={es}
                             className="rounded-2xl border border-white/5 p-4 flex justify-center"
                             modifiers={{ hasClass: classDates }}
-                            modifiersStyles={{
-                                hasClass: { 
-                                  fontWeight: 'bold', 
-                                  textDecoration: 'underline',
-                                  color: 'white',
-                                  backgroundColor: 'rgba(var(--primary-rgb), 0.15)'
-                                }
+                            modifiersClassNames={{
+                                hasClass: "text-primary font-bold underline decoration-primary/50 decoration-2 underline-offset-4"
                             }}
                             classNames={{
                                 day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 rounded-xl",
                                 day_today: "bg-accent/20 text-accent font-bold",
                                 day: "rounded-xl transition-colors hover:bg-secondary/20 h-9 w-9 p-0 font-normal aria-selected:opacity-100",
-                                hasClass: "text-primary font-bold"
                             }}
                          />
                          
