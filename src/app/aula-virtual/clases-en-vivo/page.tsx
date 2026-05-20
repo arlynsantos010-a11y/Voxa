@@ -1,18 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Video, Calendar as CalendarIcon, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Video, Calendar as CalendarIcon, Link as LinkIcon, Trash2, Clock, XCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/auth-context';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ref, get, push, set, remove } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
@@ -22,18 +23,15 @@ interface Clase {
   title: string;
   date: Date;
   link: string;
+  target?: string;
 }
 
-const initialClases: Clase[] = [
-    { id: 1, title: "Clase de Repaso: Q&A", date: new Date(2025, 2, 15), link: "https://meet.google.com/xyz-abc-def" },
-    { id: 2, title: "Presentación Proyecto Final", date: new Date(2025, 2, 22), link: "https://meet.google.com/ghi-jkl-mno" },
-]
 export default function ClasesEnVivoPage() {
   const { toast } = useToast();
   const { userRole, username } = useAuth();
   const [globalClases, setGlobalClases] = useState<Clase[]>([]);
   const [personalClases, setPersonalClases] = useState<Clase[]>([]);
-  const [studentAssignments, setStudentAssignments] = useState<any[]>([]); // To show who gets what for professors
+  const [studentAssignments, setStudentAssignments] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -41,62 +39,49 @@ export default function ClasesEnVivoPage() {
   const [newClaseTitle, setNewClaseTitle] = useState("");
   const [newClaseLink, setNewClaseLink] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [targetStudent, setTargetStudent] = useState<string>("all"); // "all" or specific username
+  const [selectedTime, setSelectedTime] = useState("10:00");
+  const [targetStudent, setTargetStudent] = useState<string>("all");
+  
+  const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     setMounted(true);
     
-    // Fetch Global Classes
-    const globalRef = ref(rtdb, 'classes/global');
-    get(globalRef).then((snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const loaded: Clase[] = Object.keys(data).map(k => ({
-          ...data[k],
-          id: k,
-          date: new Date(data[k].date)
-        }));
-        setGlobalClases(loaded);
-      }
-    });
-
-    if (userRole === 'student' && username) {
-      const fetchPersonalClases = async () => {
-        try {
-          const studentKey = username.replace(/[.#$\[\]]/g, "_");
-          const snapshot = await get(ref(rtdb, `users/${studentKey}/personalLinks`));
-          if (snapshot.exists()) {
-            const data = snapshot.val();
-            const loaded: Clase[] = Object.keys(data).map(k => ({
-              id: k,
-              title: data[k].title,
-              date: new Date(data[k].dateAdded),
-              link: data[k].url
-            }));
-            setPersonalClases(loaded);
-          }
-        } catch (err) {
-          console.error("Error fetching personal classes:", err);
+    const fetchData = async () => {
+        // Fetch Global Classes
+        const globalRef = ref(rtdb, 'classes/global');
+        const globalSnapshot = await get(globalRef);
+        if (globalSnapshot.exists()) {
+          const data = globalSnapshot.val();
+          const loaded: Clase[] = Object.keys(data).map(k => ({
+            ...data[k],
+            id: k,
+            date: new Date(data[k].date)
+          }));
+          setGlobalClases(loaded);
         }
-      };
-      fetchPersonalClases();
-    }
 
-    if (userRole === 'professor' || userRole === 'admin') {
-        // Fetch students for dropdown
-        get(ref(rtdb, 'users')).then((snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                setStudents(Object.values(data).filter((u: any) => u.role === 'student'));
+        if (userRole === 'student' && username) {
+            const studentKey = username.replace(/[.#$\[\]]/g, "_");
+            const personalSnapshot = await get(ref(rtdb, `users/${studentKey}/personalLinks`));
+            if (personalSnapshot.exists()) {
+              const data = personalSnapshot.val();
+              const loaded: Clase[] = Object.keys(data).map(k => ({
+                id: k,
+                title: data[k].title,
+                date: new Date(data[k].dateAdded),
+                link: data[k].url
+              }));
+              setPersonalClases(loaded);
             }
-        });
-        
-        // Fetch all personal links from all students to show in professor view
-        // Note: For a real app, this might be better structured in a 'classes' root
-        // but for now we follow the existing pattern.
-        get(ref(rtdb, 'users')).then((snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
+        }
+
+        if (userRole === 'professor' || userRole === 'admin') {
+            const usersSnapshot = await get(ref(rtdb, 'users'));
+            if (usersSnapshot.exists()) {
+                const data = usersSnapshot.val();
+                setStudents(Object.values(data).filter((u: any) => u.role === 'student'));
+                
                 const assignments: any[] = [];
                 Object.values(data).forEach((u: any) => {
                     if (u.personalLinks) {
@@ -113,16 +98,30 @@ export default function ClasesEnVivoPage() {
                 });
                 setStudentAssignments(assignments);
             }
-        });
-    }
+        }
+    };
+
+    fetchData();
   }, [userRole, username]);
 
-  const displayedClases = userRole === 'student' 
-    ? [...globalClases, ...personalClases].sort((a, b) => a.date.getTime() - b.date.getTime())
-    : [...globalClases, ...studentAssignments].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const allDisplayedClases = useMemo(() => {
+    const combined = userRole === 'student' 
+      ? [...globalClases, ...personalClases]
+      : [...globalClases, ...studentAssignments];
+    return combined.sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [globalClases, personalClases, studentAssignments, userRole]);
+
+  const filteredClases = useMemo(() => {
+    if (!filterDate) return allDisplayedClases;
+    return allDisplayedClases.filter(clase => isSameDay(clase.date, filterDate));
+  }, [allDisplayedClases, filterDate]);
+
+  const classDates = useMemo(() => {
+    return allDisplayedClases.map(c => c.date);
+  }, [allDisplayedClases]);
 
   const handleCreate = async () => {
-    if (!newClaseTitle || !newClaseLink || !selectedDate) {
+    if (!newClaseTitle || !newClaseLink || !selectedDate || !selectedTime) {
       toast({
           variant: "destructive",
           title: "Campos incompletos",
@@ -132,28 +131,32 @@ export default function ClasesEnVivoPage() {
     }
     
     try {
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        const finalDate = new Date(selectedDate);
+        finalDate.setHours(hours, minutes, 0, 0);
+
         if (targetStudent === "all") {
             const newGlobalRef = push(ref(rtdb, 'classes/global'));
             const newClase = {
                 title: newClaseTitle,
-                date: selectedDate.toISOString(),
+                date: finalDate.toISOString(),
                 link: newClaseLink
             };
             await set(newGlobalRef, newClase);
-            setGlobalClases(prev => [...prev, { ...newClase, id: newGlobalRef.key as string, date: selectedDate }]);
+            setGlobalClases(prev => [...prev, { ...newClase, id: newGlobalRef.key as string, date: finalDate }]);
         } else {
             const studentKey = targetStudent.replace(/[.#$\[\]]/g, "_");
             const personalRef = push(ref(rtdb, `users/${studentKey}/personalLinks`));
             const newClase = {
                 title: newClaseTitle,
                 url: newClaseLink,
-                dateAdded: selectedDate.toISOString()
+                dateAdded: finalDate.toISOString()
             };
             await set(personalRef, newClase);
             setStudentAssignments(prev => [...prev, { 
                 ...newClase, 
                 id: personalRef.key as string, 
-                date: selectedDate, 
+                date: finalDate, 
                 target: targetStudent, 
                 link: newClaseLink 
             }]);
@@ -161,11 +164,12 @@ export default function ClasesEnVivoPage() {
 
         toast({
             title: "Clase Agendada",
-            description: `La clase para ${targetStudent === "all" ? "todos" : targetStudent} ha sido creada.`,
+            description: `La clase para ${targetStudent === "all" ? "todos" : targetStudent} ha sido creada para las ${selectedTime}.`,
         });
         setNewClaseTitle("");
         setNewClaseLink("");
         setSelectedDate(new Date());
+        setSelectedTime("10:00");
         setTargetStudent("all");
         setCreateModalOpen(false);
     } catch (err) {
@@ -176,12 +180,10 @@ export default function ClasesEnVivoPage() {
   const handleDelete = async (clase: any) => {
     try {
         if (clase.target) {
-            // Personal link
             const studentKey = clase.target.replace(/[.#$\[\]]/g, "_");
             await remove(ref(rtdb, `users/${studentKey}/personalLinks/${clase.id}`));
             setStudentAssignments(prev => prev.filter(c => c.id !== clase.id));
         } else {
-            // Global link
             await remove(ref(rtdb, `classes/global/${clase.id}`));
             setGlobalClases(prev => prev.filter(c => c.id !== clase.id));
         }
@@ -215,46 +217,67 @@ export default function ClasesEnVivoPage() {
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <Card className="glass-card border-white/10 rounded-[2.5rem] overflow-hidden">
-                      <CardHeader className="bg-primary/5 border-b border-white/5">
-                          <CardTitle className="text-2xl font-headline font-bold">Próximas Sesiones</CardTitle>
-                          <CardDescription>
-                              {userRole === 'professor' 
-                                  ? "Administra el calendario de sesiones virtuales globales y personalizadas."
-                                  : "Únete a las clases programadas con un solo clic."
-                              }
-                          </CardDescription>
+                      <CardHeader className="bg-primary/5 border-b border-white/5 flex flex-row items-center justify-between">
+                          <div className="space-y-1">
+                              <CardTitle className="text-2xl font-headline font-bold">
+                                {filterDate ? `Sesiones del ${format(filterDate, "d 'de' MMMM", { locale: es })}` : "Próximas Sesiones"}
+                              </CardTitle>
+                              <CardDescription>
+                                  {userRole === 'professor' 
+                                      ? "Administra el calendario de sesiones virtuales."
+                                      : "Únete a las clases programadas con un solo clic."
+                                  }
+                              </CardDescription>
+                          </div>
+                          {filterDate && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="rounded-full border-primary/20 hover:bg-primary/10"
+                                onClick={() => setFilterDate(undefined)}
+                              >
+                                <XCircle className="w-4 h-4 mr-2" /> Ver Todas
+                              </Button>
+                          )}
                       </CardHeader>
                       <CardContent className="p-6 space-y-4">
-                      <AnimatePresence>
-                        {displayedClases.length > 0 ? (
-                            displayedClases.map((clase) => (
+                      <AnimatePresence mode="popLayout">
+                        {filteredClases.length > 0 ? (
+                            filteredClases.map((clase) => (
                             <motion.div 
                               key={clase.id}
                               layout
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, scale: 0.9 }}
-                              whileHover={{ x: 10, backgroundColor: "rgba(var(--primary-rgb), 0.05)" }}
-                              className="flex items-center justify-between p-5 bg-secondary/10 border border-white/5 rounded-3xl group transition-all"
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              whileHover={{ x: 5, backgroundColor: "rgba(var(--primary-rgb), 0.05)" }}
+                              className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-secondary/10 border border-white/5 rounded-3xl group transition-all gap-4"
                             >
-                                <div className="flex items-center gap-4 truncate">
-                                    <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                <div className="flex items-center gap-4 truncate w-full">
+                                    <div className="w-12 h-12 flex-shrink-0 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                                       <Video className="w-6 h-6" />
                                     </div>
-                                    <div className="truncate">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-lg font-bold truncate">{clase.title}</p>
-                                        {clase.target && (
-                                            <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-black uppercase">Para: {clase.target}</span>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground font-medium">
-                                      {mounted ? `Fecha: ${format(clase.date, "PPP")}` : "Cargando fecha..."}
-                                    </p>
+                                    <div className="truncate flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                          <p className="text-lg font-bold truncate">{clase.title}</p>
+                                          {clase.target && (
+                                              <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-black uppercase whitespace-nowrap">Para: {clase.target}</span>
+                                          )}
+                                      </div>
+                                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                                          <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+                                          {mounted ? format(clase.date, "PPP", { locale: es }) : "Cargando..."}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                                          <Clock className="w-3.5 h-3.5 text-primary" />
+                                          {mounted ? format(clase.date, "HH:mm") : "Cargando..."}
+                                        </div>
+                                      </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" className="rounded-xl border-primary/20 hover:bg-primary/10" asChild>
+                                <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0">
+                                    <Button variant="default" size="sm" className="rounded-xl shadow-lg shadow-primary/20 flex-1 sm:flex-initial" asChild>
                                         <a href={clase.link} target="_blank" rel="noopener noreferrer">
                                             <LinkIcon className="w-4 h-4 mr-2" /> Unirse
                                         </a>
@@ -268,10 +291,19 @@ export default function ClasesEnVivoPage() {
                             </motion.div>
                             ))
                         ) : (
-                            <div className="text-center py-20 text-muted-foreground">
+                            <motion.div 
+                              initial={{ opacity: 0 }} 
+                              animate={{ opacity: 1 }}
+                              className="text-center py-20 text-muted-foreground"
+                            >
                               <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                              <p className="font-bold">No hay clases agendadas.</p>
-                            </div>
+                              <p className="font-bold">No hay clases {filterDate ? "para este día" : "agendadas"}.</p>
+                              {filterDate && (
+                                <Button variant="link" onClick={() => setFilterDate(undefined)} className="mt-2">
+                                  Ver todas las sesiones
+                                </Button>
+                              )}
+                            </motion.div>
                         )}
                       </AnimatePresence>
                       </CardContent>
@@ -282,26 +314,52 @@ export default function ClasesEnVivoPage() {
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="hidden lg:block"
+              className="hidden lg:block space-y-6"
             >
-                <Card className="glass-card border-white/10 rounded-[2.5rem] p-6">
+                <Card className="glass-card border-white/10 rounded-[2.5rem] p-6 sticky top-24">
                    <CardHeader className="p-0 mb-6">
                         <CardTitle className="text-xl font-headline font-bold flex items-center gap-2 text-primary">
-                          <CalendarIcon className="w-5 h-5" /> Calendario de Eventos
+                          <CalendarIcon className="w-5 h-5" /> Calendario
                         </CardTitle>
+                        <CardDescription className="text-xs">
+                          Haz clic en un día destacado para ver sus clases.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                          <Calendar
                             mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            className="rounded-2xl border border-white/5 p-4"
+                            selected={filterDate}
+                            onSelect={(day) => setFilterDate(day === filterDate ? undefined : day)}
+                            locale={es}
+                            className="rounded-2xl border border-white/5 p-4 flex justify-center"
+                            modifiers={{ hasClass: classDates }}
+                            modifiersStyles={{
+                                hasClass: { 
+                                  fontWeight: 'bold', 
+                                  textDecoration: 'underline',
+                                  color: 'white',
+                                  backgroundColor: 'rgba(var(--primary-rgb), 0.15)'
+                                }
+                            }}
                             classNames={{
                                 day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 rounded-xl",
                                 day_today: "bg-accent/20 text-accent font-bold",
-                                day: "rounded-xl transition-colors hover:bg-secondary/20"
+                                day: "rounded-xl transition-colors hover:bg-secondary/20 h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+                                hasClass: "text-primary font-bold"
                             }}
                          />
+                         
+                         <div className="mt-6 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                            <div className="flex items-start gap-3">
+                              <Info className="w-5 h-5 text-primary mt-0.5" />
+                              <div className="text-sm">
+                                <p className="font-bold text-primary mb-1">Información</p>
+                                <p className="text-muted-foreground leading-relaxed">
+                                  Los días resaltados en el calendario indican que hay una sesión programada. 
+                                </p>
+                              </div>
+                            </div>
+                         </div>
                     </CardContent>
                 </Card>
             </motion.div>
@@ -324,41 +382,57 @@ export default function ClasesEnVivoPage() {
       </div>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="sm:max-w-[480px] glass-card border-white/10 rounded-[2.5rem]">
+        <DialogContent className="sm:max-w-[500px] glass-card border-white/10 rounded-[2.5rem] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-primary font-headline text-3xl font-bold">Agendar Clase</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Define los detalles de la próxima sesión virtual.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-6 space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Visibilidad / Alumno</Label>
-              <Select value={targetStudent} onValueChange={setTargetStudent}>
-                <SelectTrigger className="bg-secondary/20 border-white/5 h-12 rounded-xl">
-                  <SelectValue placeholder="Seleccionar destino" />
-                </SelectTrigger>
-                <SelectContent className="glass-card border-white/10">
-                  <SelectItem value="all">Todos los Alumnos (Global)</SelectItem>
-                  {students.map(s => (
-                    <SelectItem key={s.username} value={s.username}>
-                      Específico: {s.username}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="py-4 space-y-6">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Destinatario</Label>
+                <Select value={targetStudent} onValueChange={setTargetStudent}>
+                  <SelectTrigger className="bg-secondary/20 border-white/5 h-12 rounded-xl">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent className="glass-card border-white/10">
+                    <SelectItem value="all">Todos los Alumnos</SelectItem>
+                    {students.map(s => (
+                      <SelectItem key={s.username} value={s.username}>
+                        {s.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Hora de Inicio</Label>
+                <div className="relative">
+                  <Input 
+                    type="time"
+                    value={selectedTime}
+                    onChange={(e) => setSelectedTime(e.target.value)}
+                    className="bg-secondary/20 border-white/5 h-12 rounded-xl px-4 appearance-none"
+                  />
+                  <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
             </div>
+
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nombre de la Clase</label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Título de la Sesión</Label>
               <Input 
-                placeholder="Ej: Clase de Repaso Semanal"
+                placeholder="Ej: Clase de Repaso de Gramática"
                 value={newClaseTitle}
                 onChange={(e) => setNewClaseTitle(e.target.value)}
                 className="bg-secondary/20 border-white/5 h-12 rounded-xl"
               />
             </div>
+
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Enlace de la Reunión</label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Enlace de Reunión</Label>
               <Input 
                 placeholder="https://meet.google.com/..."
                 value={newClaseLink}
@@ -366,19 +440,25 @@ export default function ClasesEnVivoPage() {
                 className="bg-secondary/20 border-white/5 h-12 rounded-xl"
               />
             </div>
-            <div className="p-2 bg-secondary/20 border border-white/5 rounded-3xl flex justify-center scale-90">
-                <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                />
+
+            <div className="space-y-2">
+               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Fecha en el Calendario</Label>
+                <div className="p-3 bg-secondary/20 border border-white/5 rounded-3xl flex justify-center">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        locale={es}
+                        initialFocus
+                        className="scale-95"
+                    />
+                </div>
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setCreateModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-            <Button onClick={handleCreate} disabled={!newClaseTitle || !newClaseLink || !selectedDate} className="rounded-xl font-bold shadow-lg shadow-primary/20 px-8">
-                Confirmar Clase
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setCreateModalOpen(false)} className="rounded-xl font-bold flex-1 sm:flex-none">Cancelar</Button>
+            <Button onClick={handleCreate} disabled={!newClaseTitle || !newClaseLink || !selectedDate} className="rounded-xl font-bold shadow-lg shadow-primary/20 px-8 flex-1 sm:flex-none">
+                Agendar ahora
             </Button>
           </DialogFooter>
         </DialogContent>
