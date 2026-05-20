@@ -391,37 +391,40 @@ export default function ClasesEnVivoPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="bg-secondary/5 rounded-3xl p-4 border border-white/5">
+                        <div className="bg-white/[0.03] rounded-[2rem] p-6 border border-white/5 shadow-inner">
                             <Calendar
                                 mode="single"
                                 selected={filterDate}
                                 onSelect={(day) => setFilterDate(day === filterDate ? undefined : day)}
                                 locale={es}
-                                className="w-full flex justify-center"
+                                initialFocus
+                                className="w-full"
+                                formatters={{
+                                  formatWeekdayName: (date) => format(date, "EEE", { locale: es }).replace('.', '').toUpperCase(),
+                                }}
                                 modifiers={{ hasClass: classDates }}
                                 modifiersClassNames={{
-                                    hasClass: "text-primary font-black underline decoration-primary/50 decoration-4 underline-offset-4 bg-primary/5 rounded-xl"
+                                    hasClass: "text-primary font-black after:content-[''] after:absolute after:bottom-1 after:w-1 after:h-1 after:bg-primary after:rounded-full"
                                 }}
                                 classNames={{
-                                    months: "w-full",
+                                    months: "w-full space-y-4",
                                     month: "w-full space-y-6",
-                                    caption: "flex justify-center pt-1 relative items-center mb-4",
-                                    caption_label: "text-lg font-bold text-foreground/80",
-                                    nav: "space-x-1 flex items-center",
-                                    nav_button: "h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity",
-                                    nav_button_previous: "absolute left-1",
-                                    nav_button_next: "absolute right-1",
-                                    table: "w-full border-collapse space-y-1",
-                                    head_row: "flex w-full mb-2 justify-between",
-                                    head_cell: "text-muted-foreground rounded-md w-10 font-bold text-xs uppercase tracking-tighter",
+                                    caption: "flex justify-between pt-1 relative items-center mb-6 px-2",
+                                    caption_label: "text-lg font-black text-white/90 tracking-tight",
+                                    nav: "flex items-center gap-1",
+                                    nav_button: "h-9 w-9 bg-white/5 p-0 opacity-50 hover:opacity-100 rounded-xl transition-all hover:bg-primary/20 hover:text-primary",
+                                    nav_button_previous: "",
+                                    nav_button_next: "",
+                                    table: "w-full border-collapse",
+                                    head_row: "flex w-full mb-4 justify-between",
+                                    head_cell: "text-primary/40 w-10 font-black text-[10px] uppercase tracking-widest text-center",
                                     row: "flex w-full mt-2 justify-between",
-                                    cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 w-10 h-10",
-                                    day: "h-10 w-10 p-0 font-medium aria-selected:opacity-100 hover:bg-primary/10 rounded-xl transition-all flex items-center justify-center m-auto",
-                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 rounded-xl font-bold shadow-lg shadow-primary/30",
-                                    day_today: "bg-secondary text-foreground font-black ring-2 ring-primary/20",
-                                    day_outside: "text-muted-foreground opacity-30",
-                                    day_disabled: "text-muted-foreground opacity-30",
-                                    day_hidden: "invisible",
+                                    cell: "relative p-0 text-center text-sm w-10 h-10 flex items-center justify-center",
+                                    day: "h-9 w-9 p-0 font-bold hover:bg-white/10 rounded-full transition-all flex items-center justify-center m-auto text-sm text-white/60",
+                                    day_selected: "bg-indigo-600 text-white hover:bg-indigo-700 rounded-full font-black shadow-lg shadow-indigo-600/40 scale-110 border border-white/20",
+                                    day_today: "bg-white/10 text-primary font-black ring-1 ring-primary/30",
+                                    day_outside: "text-white/10 blur-[1px]",
+                                    day_disabled: "text-white/5 pointer-events-none",
                                 }}
                             />
                         </div>
