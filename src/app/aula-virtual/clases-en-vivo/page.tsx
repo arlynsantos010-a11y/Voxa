@@ -451,85 +451,94 @@ export default function ClasesEnVivoPage() {
       </div>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="sm:max-w-[1000px] bg-white border-slate-200 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl text-slate-900 ring-1 ring-slate-100">
-          <div className="bg-white p-10 border-b border-slate-100 flex items-center justify-between relative overflow-hidden">
+        <DialogContent className="sm:max-w-[1100px] bg-slate-950/60 backdrop-blur-[80px] border-white/5 rounded-[4rem] p-0 overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.9)] ring-1 ring-white/10 text-white">
+          <div className="bg-gradient-to-b from-indigo-500/10 to-transparent p-10 border-b border-white/5 flex items-center justify-between relative overflow-hidden group">
+            <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity blur-3xl -z-10" />
             <div className="flex items-center gap-6">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-2xl shadow-indigo-500/20 border border-indigo-500/20 transform hover:scale-110 transition-transform">
                   <CalendarDays className="w-9 h-9" />
                 </div>
                 <div>
-                    <DialogTitle className="text-slate-900 font-headline text-3xl font-black tracking-tight leading-none mb-2">Seleccionar días y hora</DialogTitle>
-                    <DialogDescription className="text-slate-500 text-base font-medium">Elige los días de la semana y los horarios que más te convengan.</DialogDescription>
+                    <DialogTitle className="text-white font-headline text-3xl font-black tracking-tight leading-none mb-2">Seleccionar días y hora</DialogTitle>
+                    <DialogDescription className="text-white/40 text-base font-medium">Elige los días de la semana y los horarios que más te convengan.</DialogDescription>
                 </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setCreateModalOpen(false)} className="rounded-full h-12 w-12 hover:bg-slate-100 text-slate-400">
+            <Button variant="ghost" size="icon" onClick={() => setCreateModalOpen(false)} className="rounded-full h-12 w-12 hover:bg-white/5 text-white/30 hover:text-white transition-all active:scale-90">
                 <XCircle className="w-8 h-8" />
             </Button>
           </div>
           
-          <div className="p-12 grid lg:grid-cols-[1.1fr_1fr] gap-12 bg-slate-50/30">
+          <div className="p-12 grid lg:grid-cols-[1.1fr_1fr] gap-16 bg-black/20">
             {/* Left Column: Day Selection & Info */}
-            <div className="space-y-8 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight mb-1">Selecciona los días</h3>
-                  <p className="text-sm text-slate-500 font-medium">Puedes seleccionar uno o más días.</p>
+            <div className="space-y-10">
+                <div className="bg-white/[0.03] p-10 rounded-[3rem] border border-white/5 shadow-[inset_0_4px_20px_rgba(0,0,0,0.4)] relative overflow-hidden group/days">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-[80px] -mr-24 -mt-24 opacity-20 group-hover/days:opacity-40 transition-opacity" />
+                    
+                    <div className="mb-8">
+                      <h3 className="text-lg font-black text-white tracking-tight mb-1">Selecciona los días</h3>
+                      <p className="text-sm text-white/30 font-medium">Puedes seleccionar uno o más días.</p>
+                    </div>
+
+                    <div className="grid gap-3">
+                      {WEEK_DAYS.map(day => {
+                        const isSelected = selectedWeekDays.includes(day);
+                        return (
+                          <div 
+                            key={day}
+                            onClick={() => toggleWeekDay(day)}
+                            className={`flex items-center justify-between p-5 rounded-[1.75rem] border transition-all cursor-pointer group/item ${isSelected ? "bg-indigo-500/20 border-indigo-500/40 shadow-lg scale-[1.02]" : "bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10"}`}
+                          >
+                            <div className="flex items-center gap-5">
+                              <Checkbox 
+                                checked={isSelected}
+                                onCheckedChange={() => toggleWeekDay(day)}
+                                className="w-6 h-6 rounded-lg border-2 border-white/10 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
+                              />
+                              <span className={`text-base font-bold tracking-tight ${isSelected ? "text-white" : "text-white/60"}`}>{day}</span>
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isSelected ? "text-indigo-400" : "text-white/20"}`}>
+                              {isSelected ? "Seleccionado" : "No seleccionado"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                 </div>
 
-                <div className="space-y-3">
-                  {WEEK_DAYS.map(day => {
-                    const isSelected = selectedWeekDays.includes(day);
-                    return (
-                      <div 
-                        key={day}
-                        onClick={() => toggleWeekDay(day)}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group ${isSelected ? "bg-indigo-50/50 border-indigo-200 shadow-sm" : "bg-white border-slate-100 hover:border-slate-200"}`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <Checkbox 
-                            checked={isSelected}
-                            onCheckedChange={() => toggleWeekDay(day)}
-                            className="w-6 h-6 rounded-lg border-2 border-slate-200 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
-                          />
-                          <span className={`text-base font-bold ${isSelected ? "text-slate-900" : "text-slate-600"}`}>{day}</span>
-                        </div>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? "text-indigo-600" : "text-slate-400"}`}>
-                          {isSelected ? "Seleccionado" : "No seleccionado"}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="p-6 bg-slate-50 rounded-2xl space-y-4 border border-slate-200/50">
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Título de la Sesión</Label>
+                <div className="p-8 bg-indigo-500/5 rounded-[2.5rem] space-y-6 border border-indigo-500/10 backdrop-blur-sm">
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Título de la Sesión</Label>
                         <Input 
                             placeholder="Ej: Masterclass de Vocabulario"
                             value={newClaseTitle}
                             onChange={(e) => setNewClaseTitle(e.target.value)}
-                            className="bg-white border-slate-200 h-14 rounded-xl focus:ring-indigo-500/20 text-slate-900 font-bold"
+                            className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
                         />
                     </div>
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Link de Reunión</Label>
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Link de Reunión</Label>
                         <Input 
                             placeholder="https://meet.google.com/..."
                             value={newClaseLink}
                             onChange={(e) => setNewClaseLink(e.target.value)}
-                            className="bg-white border-slate-200 h-14 rounded-xl focus:ring-indigo-500/20 text-slate-900 font-bold"
+                            className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
                         />
                     </div>
                 </div>
             </div>
 
             {/* Right Column: Time Slots */}
-            <div className="space-y-8 lg:pl-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 text-indigo-600">
-                      <Clock className="w-6 h-6" />
-                      <h3 className="text-xl font-black tracking-tight">Selecciona una hora disponible</h3>
+            <div className="space-y-10 lg:pl-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4 text-indigo-400">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/10">
+                        <Clock className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black tracking-tight text-white">Selecciona una hora</h3>
+                        <p className="text-sm text-white/30 font-medium">Elige el horario que prefieras disponible.</p>
+                      </div>
                   </div>
-                  <p className="text-sm text-slate-500 font-medium pl-9">Elige el horario que prefieras.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -549,54 +558,75 @@ export default function ClasesEnVivoPage() {
                             <Button
                                 key={time}
                                 variant={isSelected ? "default" : "outline"}
-                                className={`h-20 rounded-2xl text-lg font-bold transition-all duration-300 border-slate-100 ${isSelected ? "bg-indigo-600 text-white shadow-xl scale-105 shadow-indigo-200" : "bg-white hover:bg-indigo-50 hover:border-indigo-200 text-slate-600 shadow-sm"}`}
+                                className={`h-20 rounded-[1.75rem] text-lg font-black transition-all duration-300 ${isSelected ? "bg-indigo-600 text-white shadow-[0_15px_35px_-10px_rgba(79,70,229,0.6)] scale-105 border-indigo-400" : "bg-white/5 border-white/5 hover:bg-white/10 text-white/50 hover:text-white active:scale-95 shadow-lg"}`}
                                 onClick={() => toggleTimeSlot(time)}
                             >
-                                <span className="flex-1 text-center">{time}</span>
-                                {isSelected && <Check className="w-5 h-5 ml-2" />}
+                                <span className="flex-1 text-center tabular-nums">{time}</span>
+                                {isSelected && <Check className="w-5 h-5 mr-4 animate-in zoom-in duration-500" />}
                             </Button>
                         );
                     })}
                 </div>
 
-                <div className="flex items-center gap-3 mt-8">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="text-sm text-slate-500 font-bold">Horario disponible</span>
+                <div className="flex items-center gap-4 py-4 px-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 w-fit">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)] animate-pulse" />
+                    <span className="text-xs text-emerald-400 font-black uppercase tracking-widest">Horario disponible</span>
                 </div>
 
-                <div className="pt-8 border-t border-slate-100 space-y-4">
-                    <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <History className="w-4 h-4" /> Resumen de Selección
-                    </h4>
-                    <div className="bg-white border border-slate-100 p-6 rounded-2xl max-h-[160px] overflow-y-auto custom-scrollbar shadow-sm">
+                <div className="pt-10 border-t border-white/5 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-[11px] font-black text-white/20 uppercase tracking-[0.3em] flex items-center gap-3">
+                            <History className="w-4 h-4" /> Resumen de Selección
+                        </h4>
+                        {selectedPairs.length > 0 && (
+                          <button onClick={() => setSelectedPairs([])} className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors">Limpiar</button>
+                        )}
+                    </div>
+                    <div className="bg-black/40 border border-white/5 p-8 rounded-[2.5rem] max-h-[180px] overflow-y-auto custom-scrollbar shadow-inner relative group/res">
                         {selectedPairs.length > 0 ? (
-                            <div className="space-y-2">
+                            <div className="grid gap-3">
                                 {selectedPairs.sort((a,b) => a.date.getTime() - b.date.getTime()).map((p, i) => (
-                                    <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-slate-50 last:border-0">
-                                        <span className="font-bold text-slate-700">{format(p.date, "EEEE d 'de' MMMM", { locale: es })}</span>
-                                        <span className="text-indigo-600 font-black">{p.time}</span>
-                                    </div>
+                                    <motion.div 
+                                      initial={{ opacity: 0, x: -10 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: i * 0.03 }}
+                                      key={i} 
+                                      className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/[0.02] hover:bg-white/[0.05] transition-all"
+                                    >
+                                        <span className="font-bold text-white/80 text-sm capitalize">{format(p.date, "EEEE d 'de' MMMM", { locale: es })}</span>
+                                        <span className="text-indigo-400 font-black tabular-nums">{p.time}</span>
+                                    </motion.div>
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-xs text-slate-400 italic text-center py-4">No hay sesiones seleccionadas</p>
+                            <div className="flex flex-col items-center justify-center py-8 opacity-10">
+                                <Video className="w-12 h-12 mb-4" />
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em]">Sin sesiones</p>
+                            </div>
                         )}
                     </div>
                 </div>
             </div>
           </div>
 
-          <div className="p-10 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-end px-12">
-            <Button variant="outline" onClick={() => setCreateModalOpen(false)} className="rounded-2xl h-16 px-12 font-bold text-slate-600 border-slate-200 hover:bg-slate-50 min-w-[180px]">
-                Cancelar
+          <div className="p-12 bg-gradient-to-t from-black/40 to-transparent border-t border-white/5 flex flex-col sm:flex-row gap-8 items-center justify-end px-16 relative">
+            <div className="absolute left-16 hidden lg:flex items-center gap-4 text-white/10 text-xs font-black uppercase tracking-[0.3em]">
+                <Info className="w-5 h-5" />
+                Se creará una sesión por cada día elegido
+            </div>
+            <Button variant="ghost" onClick={() => setCreateModalOpen(false)} className="rounded-2xl h-16 px-12 font-bold text-white/40 hover:text-white transition-all hover:bg-white/5 min-w-[200px]">
+                Descartar cambios
             </Button>
             <Button 
                 onClick={handleCreate} 
                 disabled={!newClaseTitle || !newClaseLink || selectedPairs.length === 0} 
-                className="rounded-2xl h-16 px-16 font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 min-w-[300px] flex items-center justify-between"
+                className="rounded-[1.75rem] h-20 px-16 font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_25px_60px_-12px_rgba(79,70,229,0.5)] min-w-[340px] flex items-center justify-between group active:scale-[0.98] transition-all relative overflow-hidden"
             >
-                Confirmar selección
-                <ArrowRight className="w-5 h-5 ml-4" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
+                <span className="relative z-10 uppercase tracking-[0.2em] text-sm">Confirmar Reserva</span>
+                <div className="relative z-10 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                  <ArrowRight className="w-5 h-5" />
+                </div>
             </Button>
           </div>
         </DialogContent>
