@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Video, Calendar as CalendarIcon, Link as LinkIcon, Trash2, Clock, XCircle, Info, CalendarDays, CheckCircle2, History, Check, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Plus, Video, Calendar as CalendarIcon, Link as LinkIcon, Trash2, Clock, XCircle, Info, CalendarDays, CheckCircle2, History, Check, ArrowRight, Users, User } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar } from "@/components/ui/calendar"
@@ -504,24 +504,74 @@ export default function ClasesEnVivoPage() {
                     </div>
                 </div>
 
-                <div className="p-8 bg-indigo-500/5 rounded-[2.5rem] space-y-6 border border-indigo-500/10 backdrop-blur-sm">
-                    <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Título de la Sesión</Label>
-                        <Input 
-                            placeholder="Ej: Masterclass de Vocabulario"
-                            value={newClaseTitle}
-                            onChange={(e) => setNewClaseTitle(e.target.value)}
-                            className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
-                        />
+                <div className="p-8 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-8">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 ml-2">
+                          <Users className="w-5 h-5 text-indigo-400" />
+                          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">¿Para quién es esta actividad?</Label>
+                        </div>
+                        <div className="flex gap-2 p-1.5 bg-black/40 rounded-2xl border border-white/5">
+                            <button 
+                                onClick={() => setTargetStudent("all")}
+                                className={`flex-1 h-12 rounded-xl text-xs font-black transition-all ${targetStudent === "all" ? "bg-indigo-600 text-white shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+                            >
+                                TODOS
+                            </button>
+                            <button 
+                                onClick={() => setTargetStudent(students[0]?.username || "student")}
+                                className={`flex-1 h-12 rounded-xl text-xs font-black transition-all ${targetStudent !== "all" ? "bg-indigo-600 text-white shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+                            >
+                                UN ESTUDIANTE
+                            </button>
+                        </div>
                     </div>
-                    <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Link de Reunión</Label>
-                        <Input 
-                            placeholder="https://meet.google.com/..."
-                            value={newClaseLink}
-                            onChange={(e) => setNewClaseLink(e.target.value)}
-                            className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
-                        />
+
+                    {targetStudent !== "all" && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-3"
+                        >
+                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Seleccionar Estudiante</Label>
+                            <Select value={targetStudent} onValueChange={setTargetStudent}>
+                                <SelectTrigger className="bg-white/5 border-white/5 h-14 rounded-2xl text-white font-bold px-6 focus:ring-indigo-500/40">
+                                    <SelectValue placeholder="Selecciona un alumno" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-900 border-white/10 rounded-2xl text-white">
+                                    {students.map((s) => (
+                                        <SelectItem key={s.username} value={s.username} className="focus:bg-indigo-600 focus:text-white rounded-xl py-3 cursor-pointer">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-black">
+                                                    {s.fullName?.charAt(0) || s.username.charAt(0)}
+                                                </div>
+                                                <span>{s.fullName || s.username}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </motion.div>
+                    )}
+
+                    <div className="space-y-6 pt-4 border-t border-white/5">
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Título de la Sesión</Label>
+                            <Input 
+                                placeholder="Ej: Masterclass de Vocabulario"
+                                value={newClaseTitle}
+                                onChange={(e) => setNewClaseTitle(e.target.value)}
+                                className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
+                            />
+                        </div>
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Link de Reunión</Label>
+                            <Input 
+                                placeholder="https://meet.google.com/..."
+                                value={newClaseLink}
+                                onChange={(e) => setNewClaseLink(e.target.value)}
+                                className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
