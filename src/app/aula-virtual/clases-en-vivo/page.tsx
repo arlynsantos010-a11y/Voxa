@@ -548,8 +548,8 @@ export default function ClasesEnVivoPage() {
       </div>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="sm:max-w-[1100px] bg-slate-950/60 backdrop-blur-[80px] border-white/5 rounded-[4rem] p-0 overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.9)] ring-1 ring-white/10 text-white">
-          <div className="bg-gradient-to-b from-indigo-500/10 to-transparent p-10 border-b border-white/5 flex items-center justify-between relative overflow-hidden group">
+        <DialogContent className="sm:max-w-[1100px] bg-slate-950/60 backdrop-blur-[80px] border-white/5 rounded-[4rem] p-0 overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.9)] ring-1 ring-white/10 text-white max-h-[92vh] flex flex-col">
+          <div className="bg-gradient-to-b from-indigo-500/10 to-transparent p-10 border-b border-white/5 flex items-center justify-between relative overflow-hidden group shrink-0">
             <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity blur-3xl -z-10" />
             <div className="flex items-center gap-6">
                 <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-2xl shadow-indigo-500/20 border border-indigo-500/20 transform hover:scale-110 transition-transform">
@@ -565,216 +565,218 @@ export default function ClasesEnVivoPage() {
             </Button>
           </div>
           
-          <div className="p-12 grid lg:grid-cols-[1.1fr_1fr] gap-16 bg-black/20">
-            {/* Left Column: Day Selection & Info */}
-            <div className="space-y-10">
-                <div className="bg-white/[0.03] p-10 rounded-[3rem] border border-white/5 shadow-[inset_0_4px_20px_rgba(0,0,0,0.4)] relative overflow-hidden group/days">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-[80px] -mr-24 -mt-24 opacity-20 group-hover/days:opacity-40 transition-opacity" />
-                    
-                    <div className="mb-8">
-                      <h3 className="text-lg font-black text-white tracking-tight mb-1">Selecciona los días</h3>
-                      <p className="text-sm text-white/30 font-medium">Puedes seleccionar uno o más días.</p>
-                    </div>
+          <div className="overflow-y-auto flex-1 custom-scrollbar scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
+            <div className="p-12 grid lg:grid-cols-[1.1fr_1fr] gap-16 bg-black/20">
+                {/* Left Column: Day Selection & Info */}
+                <div className="space-y-10">
+                    <div className="bg-white/[0.03] p-10 rounded-[3rem] border border-white/5 shadow-[inset_0_4px_20px_rgba(0,0,0,0.4)] relative overflow-hidden group/days">
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-[80px] -mr-24 -mt-24 opacity-20 group-hover/days:opacity-40 transition-opacity" />
+                        
+                        <div className="mb-8">
+                        <h3 className="text-lg font-black text-white tracking-tight mb-1">Selecciona los días</h3>
+                        <p className="text-sm text-white/30 font-medium">Puedes seleccionar uno o más días.</p>
+                        </div>
 
-                    <div className="grid gap-3">
-                      {WEEK_DAYS.map(day => {
-                        const isSelected = selectedWeekDays.includes(day);
-                        return (
-                          <div 
-                            key={day}
-                            onClick={() => toggleWeekDay(day)}
-                            className={`flex items-center justify-between p-5 rounded-[1.75rem] border transition-all cursor-pointer group/item ${isSelected ? "bg-indigo-500/20 border-indigo-500/40 shadow-lg scale-[1.02]" : "bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10"}`}
-                          >
-                            <div className="flex items-center gap-5">
-                              <Checkbox 
-                                checked={isSelected}
-                                onCheckedChange={() => toggleWeekDay(day)}
-                                className="w-6 h-6 rounded-lg border-2 border-white/10 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
-                              />
-                              <span className={`text-base font-bold tracking-tight ${isSelected ? "text-white" : "text-white/60"}`}>{day}</span>
+                        <div className="grid gap-3">
+                        {WEEK_DAYS.map(day => {
+                            const isSelected = selectedWeekDays.includes(day);
+                            return (
+                            <div 
+                                key={day}
+                                onClick={() => toggleWeekDay(day)}
+                                className={`flex items-center justify-between p-5 rounded-[1.75rem] border transition-all cursor-pointer group/item ${isSelected ? "bg-indigo-500/20 border-indigo-500/40 shadow-lg scale-[1.02]" : "bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10"}`}
+                            >
+                                <div className="flex items-center gap-5">
+                                <Checkbox 
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleWeekDay(day)}
+                                    className="w-6 h-6 rounded-lg border-2 border-white/10 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
+                                />
+                                <span className={`text-base font-bold tracking-tight ${isSelected ? "text-white" : "text-white/60"}`}>{day}</span>
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isSelected ? "text-indigo-400" : "text-white/20"}`}>
+                                {isSelected ? "Seleccionado" : "No seleccionado"}
+                                </span>
                             </div>
-                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isSelected ? "text-indigo-400" : "text-white/20"}`}>
-                              {isSelected ? "Seleccionado" : "No seleccionado"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                </div>
-
-                <div className="p-8 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-8">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3 ml-2">
-                          <Users className="w-5 h-5 text-indigo-400" />
-                          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">¿Para quién es esta actividad?</Label>
-                        </div>
-                        <div className="flex gap-2 p-1.5 bg-black/40 rounded-2xl border border-white/5">
-                            <button 
-                                onClick={() => setTargetStudent("all")}
-                                className={`flex-1 h-12 rounded-xl text-xs font-black transition-all ${targetStudent === "all" ? "bg-indigo-600 text-white shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"}`}
-                            >
-                                TODOS
-                            </button>
-                            <button 
-                                onClick={() => setTargetStudent(students[0]?.username || "student")}
-                                className={`flex-1 h-12 rounded-xl text-xs font-black transition-all ${targetStudent !== "all" ? "bg-indigo-600 text-white shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"}`}
-                            >
-                                UN ESTUDIANTE
-                            </button>
+                            );
+                        })}
                         </div>
                     </div>
 
-                    {targetStudent !== "all" && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="space-y-3"
-                        >
-                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Seleccionar Estudiante</Label>
-                            <Select value={targetStudent} onValueChange={setTargetStudent}>
-                                <SelectTrigger className="bg-white/5 border-white/5 h-14 rounded-2xl text-white font-bold px-6 focus:ring-indigo-500/40">
-                                    <SelectValue placeholder="Selecciona un alumno" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-slate-900 border-white/10 rounded-2xl text-white">
-                                    {students.map((s) => (
-                                        <SelectItem key={s.username} value={s.username} className="focus:bg-indigo-600 focus:text-white rounded-xl py-3 cursor-pointer">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-black">
-                                                    {s.fullName?.charAt(0) || s.username.charAt(0)}
+                    <div className="p-8 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-8">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 ml-2">
+                            <Users className="w-5 h-5 text-indigo-400" />
+                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">¿Para quién es esta actividad?</Label>
+                            </div>
+                            <div className="flex gap-2 p-1.5 bg-black/40 rounded-2xl border border-white/5">
+                                <button 
+                                    onClick={() => setTargetStudent("all")}
+                                    className={`flex-1 h-12 rounded-xl text-xs font-black transition-all ${targetStudent === "all" ? "bg-indigo-600 text-white shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+                                >
+                                    TODOS
+                                </button>
+                                <button 
+                                    onClick={() => setTargetStudent(students[0]?.username || "student")}
+                                    className={`flex-1 h-12 rounded-xl text-xs font-black transition-all ${targetStudent !== "all" ? "bg-indigo-600 text-white shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"}`}
+                                >
+                                    UN ESTUDIANTE
+                                </button>
+                            </div>
+                        </div>
+
+                        {targetStudent !== "all" && (
+                            <motion.div 
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-3"
+                            >
+                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Seleccionar Estudiante</Label>
+                                <Select value={targetStudent} onValueChange={setTargetStudent}>
+                                    <SelectTrigger className="bg-white/5 border-white/5 h-14 rounded-2xl text-white font-bold px-6 focus:ring-indigo-500/40">
+                                        <SelectValue placeholder="Selecciona un alumno" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-white/10 rounded-2xl text-white">
+                                        {students.map((s) => (
+                                            <SelectItem key={s.username} value={s.username} className="focus:bg-indigo-600 focus:text-white rounded-xl py-3 cursor-pointer">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-black">
+                                                        {s.fullName?.charAt(0) || s.username.charAt(0)}
+                                                    </div>
+                                                    <span>{s.fullName || s.username}</span>
                                                 </div>
-                                                <span>{s.fullName || s.username}</span>
-                                            </div>
-                                        </SelectItem>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </motion.div>
+                        )}
+
+                        <div className="space-y-6 pt-4 border-t border-white/5">
+                            <div className="flex items-center justify-between p-6 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 group/rec">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isRecurring ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-white/5 text-white/20"}`}>
+                                        <Repeat className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-black text-white tracking-tight">Repetir semanalmente</h4>
+                                        <p className="text-[10px] text-white/40 font-medium">La clase se agendará automáticamente cada semana.</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setIsRecurring(!isRecurring)}
+                                    className={`w-14 h-8 rounded-full relative transition-all duration-300 ${isRecurring ? "bg-indigo-600" : "bg-white/10"}`}
+                                >
+                                    <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${isRecurring ? "left-7" : "left-1"}`} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Título de la Sesión</Label>
+                                <Input 
+                                    placeholder="Ej: Masterclass de Vocabulario"
+                                    value={newClaseTitle}
+                                    onChange={(e) => setNewClaseTitle(e.target.value)}
+                                    className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
+                                />
+                            </div>
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Link de Reunión</Label>
+                                <Input 
+                                    placeholder="https://meet.google.com/..."
+                                    value={newClaseLink}
+                                    onChange={(e) => setNewClaseLink(e.target.value)}
+                                    className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: Time Slots */}
+                <div className="space-y-10 lg:pl-4">
+                    <div className="space-y-3">
+                    <div className="flex items-center gap-4 text-indigo-400">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/10">
+                            <Clock className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black tracking-tight text-white">Selecciona una hora</h3>
+                            <p className="text-sm text-white/30 font-medium">Elige el horario que prefieras disponible.</p>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        {TIME_SLOTS.map(time => {
+                            const isSelected = selectedPairs.length > 0 && selectedWeekDays.length > 0 && selectedWeekDays.every(day => {
+                                const dayMap: Record<string, number> = { "Domingo": 0, "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6 };
+                                const targetDay = dayMap[day];
+                                const today = startOfToday();
+                                const currentDay = getDay(today);
+                                let diff = targetDay - currentDay;
+                                if (diff < 0) diff += 7;
+                                const date = addDays(today, diff);
+                                return selectedPairs.some(p => isSameDay(p.date, date) && p.time === time);
+                            });
+
+                            return (
+                                <Button
+                                    key={time}
+                                    variant={isSelected ? "default" : "outline"}
+                                    className={`h-20 rounded-[1.75rem] text-lg font-black transition-all duration-300 ${isSelected ? "bg-indigo-600 text-white shadow-[0_15px_35px_-10px_rgba(79,70,229,0.6)] scale-105 border-indigo-400" : "bg-white/5 border-white/5 hover:bg-white/10 text-white/50 hover:text-white active:scale-95 shadow-lg"}`}
+                                    onClick={() => toggleTimeSlot(time)}
+                                >
+                                    <span className="flex-1 text-center tabular-nums">{time}</span>
+                                    {isSelected && <Check className="w-5 h-5 mr-4 animate-in zoom-in duration-500" />}
+                                </Button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex items-center gap-4 py-4 px-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 w-fit">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)] animate-pulse" />
+                        <span className="text-xs text-emerald-400 font-black uppercase tracking-widest">Horario disponible</span>
+                    </div>
+
+                    <div className="pt-10 border-t border-white/5 space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-[11px] font-black text-white/20 uppercase tracking-[0.3em] flex items-center gap-3">
+                                <History className="w-4 h-4" /> Resumen de Selección
+                            </h4>
+                            {selectedPairs.length > 0 && (
+                            <button onClick={() => setSelectedPairs([])} className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors">Limpiar</button>
+                            )}
+                        </div>
+                        <div className="bg-black/40 border border-white/5 p-8 rounded-[2.5rem] max-h-[180px] overflow-y-auto custom-scrollbar shadow-inner relative group/res">
+                            {selectedPairs.length > 0 ? (
+                                <div className="grid gap-3">
+                                    {selectedPairs.sort((a,b) => a.date.getTime() - b.date.getTime()).map((p, i) => (
+                                        <motion.div 
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: i * 0.03 }}
+                                        key={i} 
+                                        className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/[0.02] hover:bg-white/[0.05] transition-all"
+                                        >
+                                            <span className="font-bold text-white/80 text-sm capitalize">{format(p.date, "EEEE d 'de' MMMM", { locale: es })}</span>
+                                            <span className="text-indigo-400 font-black tabular-nums">{p.time}</span>
+                                        </motion.div>
                                     ))}
-                                </SelectContent>
-                            </Select>
-                        </motion.div>
-                    )}
-
-                    <div className="space-y-6 pt-4 border-t border-white/5">
-                        <div className="flex items-center justify-between p-6 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 group/rec">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isRecurring ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-white/5 text-white/20"}`}>
-                                    <Repeat className="w-6 h-6" />
                                 </div>
-                                <div>
-                                    <h4 className="text-sm font-black text-white tracking-tight">Repetir semanalmente</h4>
-                                    <p className="text-[10px] text-white/40 font-medium">La clase se agendará automáticamente cada semana.</p>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-8 opacity-10">
+                                    <Video className="w-12 h-12 mb-4" />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em]">Sin sesiones</p>
                                 </div>
-                            </div>
-                            <button 
-                                onClick={() => setIsRecurring(!isRecurring)}
-                                className={`w-14 h-8 rounded-full relative transition-all duration-300 ${isRecurring ? "bg-indigo-600" : "bg-white/10"}`}
-                            >
-                                <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${isRecurring ? "left-7" : "left-1"}`} />
-                            </button>
+                            )}
                         </div>
-
-                        <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Título de la Sesión</Label>
-                            <Input 
-                                placeholder="Ej: Masterclass de Vocabulario"
-                                value={newClaseTitle}
-                                onChange={(e) => setNewClaseTitle(e.target.value)}
-                                className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
-                            />
-                        </div>
-                        <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Link de Reunión</Label>
-                            <Input 
-                                placeholder="https://meet.google.com/..."
-                                value={newClaseLink}
-                                onChange={(e) => setNewClaseLink(e.target.value)}
-                                className="bg-white/5 border-white/5 h-14 rounded-2xl focus:ring-indigo-500/40 text-white font-bold placeholder:text-white/10 px-6"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Right Column: Time Slots */}
-            <div className="space-y-10 lg:pl-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4 text-indigo-400">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/10">
-                        <Clock className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-black tracking-tight text-white">Selecciona una hora</h3>
-                        <p className="text-sm text-white/30 font-medium">Elige el horario que prefieras disponible.</p>
-                      </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    {TIME_SLOTS.map(time => {
-                        const isSelected = selectedPairs.length > 0 && selectedWeekDays.length > 0 && selectedWeekDays.every(day => {
-                            const dayMap: Record<string, number> = { "Domingo": 0, "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6 };
-                            const targetDay = dayMap[day];
-                            const today = startOfToday();
-                            const currentDay = getDay(today);
-                            let diff = targetDay - currentDay;
-                            if (diff < 0) diff += 7;
-                            const date = addDays(today, diff);
-                            return selectedPairs.some(p => isSameDay(p.date, date) && p.time === time);
-                        });
-
-                        return (
-                            <Button
-                                key={time}
-                                variant={isSelected ? "default" : "outline"}
-                                className={`h-20 rounded-[1.75rem] text-lg font-black transition-all duration-300 ${isSelected ? "bg-indigo-600 text-white shadow-[0_15px_35px_-10px_rgba(79,70,229,0.6)] scale-105 border-indigo-400" : "bg-white/5 border-white/5 hover:bg-white/10 text-white/50 hover:text-white active:scale-95 shadow-lg"}`}
-                                onClick={() => toggleTimeSlot(time)}
-                            >
-                                <span className="flex-1 text-center tabular-nums">{time}</span>
-                                {isSelected && <Check className="w-5 h-5 mr-4 animate-in zoom-in duration-500" />}
-                            </Button>
-                        );
-                    })}
-                </div>
-
-                <div className="flex items-center gap-4 py-4 px-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 w-fit">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)] animate-pulse" />
-                    <span className="text-xs text-emerald-400 font-black uppercase tracking-widest">Horario disponible</span>
-                </div>
-
-                <div className="pt-10 border-t border-white/5 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h4 className="text-[11px] font-black text-white/20 uppercase tracking-[0.3em] flex items-center gap-3">
-                            <History className="w-4 h-4" /> Resumen de Selección
-                        </h4>
-                        {selectedPairs.length > 0 && (
-                          <button onClick={() => setSelectedPairs([])} className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors">Limpiar</button>
-                        )}
-                    </div>
-                    <div className="bg-black/40 border border-white/5 p-8 rounded-[2.5rem] max-h-[180px] overflow-y-auto custom-scrollbar shadow-inner relative group/res">
-                        {selectedPairs.length > 0 ? (
-                            <div className="grid gap-3">
-                                {selectedPairs.sort((a,b) => a.date.getTime() - b.date.getTime()).map((p, i) => (
-                                    <motion.div 
-                                      initial={{ opacity: 0, x: -10 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ delay: i * 0.03 }}
-                                      key={i} 
-                                      className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/[0.02] hover:bg-white/[0.05] transition-all"
-                                    >
-                                        <span className="font-bold text-white/80 text-sm capitalize">{format(p.date, "EEEE d 'de' MMMM", { locale: es })}</span>
-                                        <span className="text-indigo-400 font-black tabular-nums">{p.time}</span>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-8 opacity-10">
-                                <Video className="w-12 h-12 mb-4" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em]">Sin sesiones</p>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
           </div>
 
-          <div className="p-12 bg-gradient-to-t from-black/40 to-transparent border-t border-white/5 flex flex-col sm:flex-row gap-8 items-center justify-end px-16 relative">
+          <div className="p-12 bg-gradient-to-t from-black/40 to-transparent border-t border-white/5 flex flex-col sm:flex-row gap-8 items-center justify-end px-16 relative shrink-0">
             <div className="absolute left-16 hidden lg:flex items-center gap-4 text-white/10 text-xs font-black uppercase tracking-[0.3em]">
                 <Info className="w-5 h-5" />
                 Se creará una sesión por cada día elegido
