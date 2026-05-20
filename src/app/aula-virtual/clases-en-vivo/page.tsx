@@ -392,11 +392,6 @@ export default function ClasesEnVivoPage() {
                     </CardHeader>
                     <CardContent className="p-0">
                         <div id="fixed-calendar" className="bg-white/[0.03] rounded-[2rem] p-6 border border-white/5 shadow-inner">
-                            <style dangerouslySetInnerHTML={{ __html: `
-                                #fixed-calendar .rdp-table { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; width: 100% !important; }
-                                #fixed-calendar .rdp-tbody, #fixed-calendar .rdp-thead, #fixed-calendar .rdp-tr { display: contents !important; }
-                                #fixed-calendar .rdp-th, #fixed-calendar .rdp-td { display: flex !important; align-items: center !important; justify-content: center !important; height: 44px !important; width: 100% !important; }
-                            ` }} />
                             <Calendar
                                 mode="single"
                                 selected={filterDate}
@@ -410,23 +405,22 @@ export default function ClasesEnVivoPage() {
                                 classNames={{
                                     months: "w-full space-y-4",
                                     month: "w-full space-y-4",
-                                    caption: "flex justify-between pt-1 relative items-center mb-6 px-2",
+                                    month_caption: "flex justify-between pt-1 relative items-center mb-4 px-2",
                                     caption_label: "text-base font-black text-white/90 tracking-tight",
                                     nav: "flex items-center gap-1",
-                                    nav_button: "h-8 w-8 bg-white/5 p-0 opacity-50 hover:opacity-100 rounded-lg transition-all hover:bg-primary/20 hover:text-primary",
-                                    table: "rdp-table",
-                                    head: "rdp-thead",
-                                    tbody: "rdp-tbody",
-                                    head_row: "rdp-tr",
-                                    head_cell: "rdp-th text-primary/40 font-black text-[10px] uppercase tracking-widest text-center",
-                                    row: "rdp-tr",
-                                    cell: "rdp-td relative p-0 text-center text-sm",
-                                    day: "h-10 w-10 p-0 font-bold hover:bg-white/10 rounded-full transition-all flex items-center justify-center m-auto text-sm text-white/60",
-                                    day_selected: "bg-indigo-600 text-white hover:bg-indigo-700 rounded-full font-black shadow-lg shadow-indigo-600/40 scale-105",
-                                    day_today: "bg-white/10 text-primary font-black ring-1 ring-primary/30",
-                                    day_outside: "text-white/10 opacity-20",
-                                    day_disabled: "text-white/5 pointer-events-none",
-                                    day_hidden: "invisible",
+                                    button_previous: "h-8 w-8 bg-white/5 p-0 opacity-50 hover:opacity-100 rounded-lg transition-all hover:bg-primary/20 hover:text-primary flex items-center justify-center",
+                                    button_next: "h-8 w-8 bg-white/5 p-0 opacity-50 hover:opacity-100 rounded-lg transition-all hover:bg-primary/20 hover:text-primary flex items-center justify-center",
+                                    month_grid: "w-full border-collapse",
+                                    weekdays: "flex w-full mb-2 justify-between",
+                                    weekday: "text-primary/40 w-9 font-black text-[10px] uppercase tracking-widest text-center flex-1",
+                                    weeks: "w-full",
+                                    week: "flex w-full mt-1 justify-between",
+                                    day: "h-9 w-9 p-0 font-bold hover:bg-white/10 rounded-full transition-all flex items-center justify-center m-auto text-sm text-white/60",
+                                    selected: "bg-indigo-600 text-white hover:bg-indigo-700 rounded-full font-black shadow-lg shadow-indigo-600/40 scale-105",
+                                    today: "bg-white/10 text-primary font-black ring-1 ring-primary/30",
+                                    outside: "text-white/10 opacity-20",
+                                    disabled: "text-white/5 pointer-events-none",
+                                    hidden: "invisible",
                                 }}
                             />
                         </div>
