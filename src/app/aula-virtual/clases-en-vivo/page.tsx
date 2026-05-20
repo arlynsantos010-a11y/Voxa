@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Video, Calendar as CalendarIcon, Link as LinkIcon, Trash2, Clock, XCircle, Info, CalendarDays, CheckCircle2, History, Check, ArrowRight, Users, User } from 'lucide-react';
+import { ArrowLeft, Plus, Video, Calendar as CalendarIcon, Link as LinkIcon, Trash2, Clock, XCircle, Info, CalendarDays, CheckCircle2, History, Check, ArrowRight, Users, User, Repeat, RefreshCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar } from "@/components/ui/calendar"
@@ -25,6 +25,8 @@ interface Clase {
   date: Date;
   link: string;
   target?: string;
+  isRecurring?: boolean;
+  ruleId?: string;
 }
 
 interface SelectedPair {
@@ -55,50 +57,54 @@ export default function ClasesEnVivoPage() {
   const [selectedWeekDays, setSelectedWeekDays] = useState<string[]>([]);
   const [selectedPairs, setSelectedPairs] = useState<SelectedPair[]>([]);
   const [targetStudent, setTargetStudent] = useState<string>("all");
+  const [isRecurring, setIsRecurring] = useState(true);
   
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     setMounted(true);
     const fetchData = async () => {
+        // 1. Fetch Global Static Classes
         const globalRef = ref(rtdb, 'classes/global');
         const globalSnapshot = await get(globalRef);
+        let loadedGlobals: Clase[] = [];
         if (globalSnapshot.exists()) {
           const data = globalSnapshot.val();
-          const loaded: Clase[] = Object.keys(data).map(k => ({
+          loadedGlobals = Object.keys(data).map(k => ({
             ...data[k],
             id: k,
             date: new Date(data[k].date)
           }));
-          setGlobalClases(loaded);
         }
 
+        // 2. Fetch Personal Static Classes
+        let loadedPersonals: Clase[] = [];
         if (userRole === 'student' && username) {
             const studentKey = username.replace(/[.#$\[\]]/g, "_");
             const personalSnapshot = await get(ref(rtdb, `users/${studentKey}/personalLinks`));
             if (personalSnapshot.exists()) {
-              const data = personalSnapshot.val();
-              const loaded: Clase[] = Object.keys(data).map(k => ({
-                id: k,
-                title: data[k].title,
-                date: new Date(data[k].dateAdded),
-                link: data[k].url
-              }));
-              setPersonalClases(loaded);
+                const data = personalSnapshot.val();
+                loadedPersonals = Object.keys(data).map(k => ({
+                  id: k,
+                  title: data[k].title,
+                  date: new Date(data[k].dateAdded),
+                  link: data[k].url
+                }));
             }
         }
 
+        // 3. Fetch Assignments (Professors/Admin)
+        let loadedAssignments: any[] = [];
         if (userRole === 'professor' || userRole === 'admin') {
             const usersSnapshot = await get(ref(rtdb, 'users'));
             if (usersSnapshot.exists()) {
-                const data = usersSnapshot.val();
-                setStudents(Object.values(data).filter((u: any) => u.role === 'student'));
+                const usersData = usersSnapshot.val();
+                setStudents(Object.values(usersData).filter((u: any) => u.role === 'student'));
                 
-                const assignments: any[] = [];
-                Object.values(data).forEach((u: any) => {
+                Object.values(usersData).forEach((u: any) => {
                     if (u.personalLinks) {
                         Object.entries(u.personalLinks).forEach(([id, link]: [string, any]) => {
-                            assignments.push({
+                            loadedAssignments.push({
                                 ...link,
                                 id,
                                 date: new Date(link.dateAdded),
@@ -108,9 +114,77 @@ export default function ClasesEnVivoPage() {
                         });
                     }
                 });
-                setStudentAssignments(assignments);
             }
         }
+
+        // 4. Generate Recurring Instances helper
+        const generateRecurringInstances = (rules: any, targetUser?: string) => {
+            const instances: Clase[] = [];
+            Object.keys(rules).forEach(ruleId => {
+                const rule = rules[ruleId];
+                if (!rule.days || !rule.time) return;
+                
+                const [hours, minutes] = rule.time.split(':').map(Number);
+                const dayMap: Record<string, number> = {
+                    "Domingo": 0, "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6
+                };
+
+                rule.days.forEach((dayName: string) => {
+                    const targetDay = dayMap[dayName];
+                    const today = startOfToday();
+                    
+                    // Prolonged 14-day window
+                    for (let i = 0; i < 14; i++) {
+                        const date = addDays(today, i);
+                        if (getDay(date) === targetDay) {
+                            const finalDate = new Date(date);
+                            finalDate.setHours(hours, minutes, 0, 0);
+                            instances.push({
+                                id: `${ruleId}_${i}`,
+                                ruleId: ruleId,
+                                title: rule.title,
+                                link: rule.link || rule.url,
+                                date: finalDate,
+                                target: targetUser || rule.target || "TODIVOS",
+                                isRecurring: true
+                            });
+                        }
+                    }
+                });
+            });
+            return instances;
+        };
+
+        // Fetch Global Recurring
+        const recGlobalSnapshot = await get(ref(rtdb, 'classes/recurring/global'));
+        if (recGlobalSnapshot.exists()) {
+            loadedGlobals = [...loadedGlobals, ...generateRecurringInstances(recGlobalSnapshot.val())];
+        }
+
+        // Fetch Personal Recurring (Student)
+        if (userRole === 'student' && username) {
+            const studentKey = username.replace(/[.#$\[\]]/g, "_");
+            const recPersSnapshot = await get(ref(rtdb, `users/${studentKey}/recurringLinks`));
+            if (recPersSnapshot.exists()) {
+                loadedPersonals = [...loadedPersonals, ...generateRecurringInstances(recPersSnapshot.val(), username)];
+            }
+        }
+
+        // Fetch Recurring Assignments (Professor)
+        if (userRole === 'professor' || userRole === 'admin') {
+            const usersSnapshot = await get(ref(rtdb, 'users'));
+            if (usersSnapshot.exists()) {
+                Object.values(usersSnapshot.val()).forEach((u: any) => {
+                    if (u.recurringLinks) {
+                        loadedAssignments = [...loadedAssignments, ...generateRecurringInstances(u.recurringLinks, u.username)];
+                    }
+                });
+            }
+        }
+
+        setGlobalClases(loadedGlobals);
+        setPersonalClases(loadedPersonals);
+        setStudentAssignments(loadedAssignments);
     };
     fetchData();
   }, [userRole, username]);
@@ -185,53 +259,66 @@ export default function ClasesEnVivoPage() {
       });
       return;
     }
-    
-    try {
-        const creationPromises = selectedPairs.map(async (pair) => {
-            const [hours, minutes] = pair.time.split(':').map(Number);
-            const finalDate = new Date(pair.date);
-            finalDate.setHours(hours, minutes, 0, 0);
 
+    try {
+        if (isRecurring) {
+            // Save as a Rule
+            const days = selectedWeekDays;
+            const time = selectedPairs[0].time;
+            
             if (targetStudent === "all") {
-                const newGlobalRef = push(ref(rtdb, 'classes/global'));
-                const newClaseData = {
+                const newRuleRef = push(ref(rtdb, 'classes/recurring/global'));
+                await set(newRuleRef, {
                     title: newClaseTitle,
-                    date: finalDate.toISOString(),
-                    link: newClaseLink
-                };
-                await set(newGlobalRef, newClaseData);
-                return { ...newClaseData, id: newGlobalRef.key as string, date: finalDate, isGlobal: true };
+                    link: newClaseLink,
+                    days: days,
+                    time: time,
+                    isRecurring: true,
+                    dateAdded: new Date().toISOString()
+                });
             } else {
                 const studentKey = targetStudent.replace(/[.#$\[\]]/g, "_");
-                const personalRef = push(ref(rtdb, `users/${studentKey}/personalLinks`));
-                const newClaseData = {
+                const personalRuleRef = push(ref(rtdb, `users/${studentKey}/recurringLinks`));
+                await set(personalRuleRef, {
                     title: newClaseTitle,
                     url: newClaseLink,
-                    dateAdded: finalDate.toISOString()
-                };
-                await set(personalRef, newClaseData);
-                return { 
-                    ...newClaseData, 
-                    id: personalRef.key as string, 
-                    date: finalDate, 
-                    target: targetStudent, 
-                    link: newClaseLink,
-                    isGlobal: false
-                };
+                    days: days,
+                    time: time,
+                    isRecurring: true,
+                    dateAdded: new Date().toISOString(),
+                    target: targetStudent
+                });
             }
-        });
+        } else {
+            // Save as Individual Static Sessions
+            const creationPromises = selectedPairs.map(async (pair) => {
+                const [hours, minutes] = pair.time.split(':').map(Number);
+                const finalDate = new Date(pair.date);
+                finalDate.setHours(hours, minutes, 0, 0);
 
-        const results = await Promise.all(creationPromises);
-        
-        const globals = results.filter(r => r.isGlobal).map(({isGlobal, ...rest}) => rest as Clase);
-        const personals = results.filter(r => !r.isGlobal);
-        
-        if (globals.length > 0) setGlobalClases(prev => [...prev, ...globals]);
-        if (personals.length > 0) setStudentAssignments(prev => [...prev, ...personals]);
+                if (targetStudent === "all") {
+                    const newGlobalRef = push(ref(rtdb, 'classes/global'));
+                    await set(newGlobalRef, {
+                        title: newClaseTitle,
+                        date: finalDate.toISOString(),
+                        link: newClaseLink
+                    });
+                } else {
+                    const studentKey = targetStudent.replace(/[.#$\[\]]/g, "_");
+                    const personalRef = push(ref(rtdb, `users/${studentKey}/personalLinks`));
+                    await set(personalRef, {
+                        title: newClaseTitle,
+                        url: newClaseLink,
+                        dateAdded: finalDate.toISOString()
+                    });
+                }
+            });
+            await Promise.all(creationPromises);
+        }
 
         toast({
-            title: "Clases Agendadas",
-            description: `Se han creado ${selectedPairs.length} sesiones correctamente.`,
+            title: isRecurring ? "Horario Recurrente Creado" : "Clases Agendadas",
+            description: "El horario se ha programado correctamente.",
         });
         
         setNewClaseTitle("");
@@ -239,6 +326,7 @@ export default function ClasesEnVivoPage() {
         setSelectedPairs([]);
         setTargetStudent("all");
         setCreateModalOpen(false);
+        window.location.reload(); 
     } catch (err) {
         toast({ variant: "destructive", title: "Error", description: "No se pudieron crear las sesiones." });
     }
@@ -246,17 +334,27 @@ export default function ClasesEnVivoPage() {
 
   const handleDelete = async (clase: any) => {
     try {
-        if (clase.target) {
-            const studentKey = clase.target.replace(/[.#$\[\]]/g, "_");
-            await remove(ref(rtdb, `users/${studentKey}/personalLinks/${clase.id}`));
-            setStudentAssignments(prev => prev.filter(c => c.id !== clase.id));
+        if (clase.isRecurring && clase.ruleId) {
+            // Delete the Rule
+            if (clase.target && clase.target !== "TODIVOS" && clase.target !== "all") {
+                const studentKey = clase.target.replace(/[.#$\[\]]/g, "_");
+                await remove(ref(rtdb, `users/${studentKey}/recurringLinks/${clase.ruleId}`));
+            } else {
+                await remove(ref(rtdb, `classes/recurring/global/${clase.ruleId}`));
+            }
         } else {
-            await remove(ref(rtdb, `classes/global/${clase.id}`));
-            setGlobalClases(prev => prev.filter(c => c.id !== clase.id));
+            // Delete Static Session
+            if (clase.target) {
+                const studentKey = clase.target.replace(/[.#$\[\]]/g, "_");
+                await remove(ref(rtdb, `users/${studentKey}/personalLinks/${clase.id}`));
+            } else {
+                await remove(ref(rtdb, `classes/global/${clase.id}`));
+            }
         }
-        toast({ title: "Clase Eliminada" });
+        toast({ title: "Sesión eliminada" });
+        window.location.reload();
     } catch (err) {
-        toast({ variant: "destructive", title: "Error" });
+        toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la sesión." });
     }
   }
 
@@ -554,6 +652,24 @@ export default function ClasesEnVivoPage() {
                     )}
 
                     <div className="space-y-6 pt-4 border-t border-white/5">
+                        <div className="flex items-center justify-between p-6 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 group/rec">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isRecurring ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-white/5 text-white/20"}`}>
+                                    <Repeat className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-black text-white tracking-tight">Repetir semanalmente</h4>
+                                    <p className="text-[10px] text-white/40 font-medium">La clase se agendará automáticamente cada semana.</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setIsRecurring(!isRecurring)}
+                                className={`w-14 h-8 rounded-full relative transition-all duration-300 ${isRecurring ? "bg-indigo-600" : "bg-white/10"}`}
+                            >
+                                <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${isRecurring ? "left-7" : "left-1"}`} />
+                            </button>
+                        </div>
+
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/60 ml-2">Título de la Sesión</Label>
                             <Input 
