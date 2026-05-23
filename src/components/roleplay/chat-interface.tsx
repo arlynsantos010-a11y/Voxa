@@ -34,21 +34,39 @@ export function ChatInterface({ scenario, onExit }: { scenario: any, onExit: () 
     setInputText("");
     setIsTyping(true);
 
-    // Mock AI Reply Logic based on input length or context
-    setTimeout(() => {
-      let reply = "I'm not sure what you mean, but let's practice more!";
-      if (newMsg.text.toLowerCase().includes("hello") || newMsg.text.toLowerCase().includes("hola")) {
-        reply = "Hello! Please, let me see your documents.";
-      } else if (newMsg.text.length > 20) {
-        reply = "That sounds great! Your grammar was very good there.";
+    // Real AI Reply Logic
+    try {
+      const response = await fetch("/api/ai/tutor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenario,
+          history: messages,
+          message: inputText,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch AI response");
+
+      const data = await response.json();
+      const reply = data.text;
+
+      // Trigger confetti for good performance (optional logic)
+      if (inputText.length > 30) {
         triggerSuccessConfetti();
-      } else {
-        reply = scenario.mockReplies[Math.floor(Math.random() * scenario.mockReplies.length)];
       }
 
       setMessages(prev => [...prev, { id: Date.now().toString(), sender: "ai", text: reply }]);
+    } catch (error) {
+      console.error("AI Error:", error);
+      setMessages(prev => [...prev, { 
+        id: Date.now().toString(), 
+        sender: "ai", 
+        text: "Lo siento, tuve un problema de conexión. ¿Podrías repetir eso?" 
+      }]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleVoice = () => {
