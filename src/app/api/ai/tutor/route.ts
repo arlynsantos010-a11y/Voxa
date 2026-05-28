@@ -41,6 +41,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ text: aiText });
   } catch (error: any) {
     console.error("AI Tutor Error:", error);
-    return NextResponse.json({ error: "Failed to generate AI response" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to generate AI response" }, { status: 500 });
   }
 }
