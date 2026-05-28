@@ -46,7 +46,10 @@ export function ChatInterface({ scenario, onExit }: { scenario: any, onExit: () 
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to fetch AI response");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch AI response");
+      }
 
       const data = await response.json();
       const reply = data.text;
@@ -57,12 +60,12 @@ export function ChatInterface({ scenario, onExit }: { scenario: any, onExit: () 
       }
 
       setMessages(prev => [...prev, { id: Date.now().toString(), sender: "ai", text: reply }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Error:", error);
       setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
         sender: "ai", 
-        text: "Lo siento, tuve un problema de conexión. ¿Podrías repetir eso?" 
+        text: `Error de conexión: ${error.message || "Lo siento, tuve un problema. ¿Podrías repetir eso?"}` 
       }]);
     } finally {
       setIsTyping(false);
