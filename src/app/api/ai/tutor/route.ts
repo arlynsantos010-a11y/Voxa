@@ -4,6 +4,11 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
     const { scenario, history, message } = await req.json();
+    
+    if (!process.env.GOOGLE_GENAI_API_KEY) {
+      console.error("CRITICAL: GOOGLE_GENAI_API_KEY is not set in environment variables.");
+      return NextResponse.json({ error: "Configuración de IA incompleta (Falta API Key)" }, { status: 500 });
+    }
 
     const systemPrompt = `
       You are an expert AI Language Tutor for Voxa, an immersive language learning platform.
