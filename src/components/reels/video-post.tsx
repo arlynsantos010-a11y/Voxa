@@ -22,42 +22,71 @@ export function VideoPost({ url, isActive, author, description, song, likes, com
   const [showPlayIcon, setShowPlayIcon] = useState<boolean>(false);
   const playerRef = useRef<any>(null);
 
+  const isYouTube = !url.startsWith('http');
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   // Escucha cambios en isActive desde el IntersectionObserver 
   // para pausar o reproducir agresivamente según el scroll de usuario
   useEffect(() => {
-    if (!playerRef.current) return;
-    
-    if (isActive) {
-      playerRef.current.playVideo();
-      setIsPlaying(true);
+    if (isYouTube) {
+      if (!playerRef.current) return;
+      if (isActive) {
+        playerRef.current.playVideo();
+        setIsPlaying(true);
+      } else {
+        playerRef.current.pauseVideo();
+        setIsPlaying(false);
+      }
     } else {
-      playerRef.current.pauseVideo();
-      setIsPlaying(false);
+      if (!videoRef.current) return;
+      if (isActive) {
+        videoRef.current.play().catch(e => console.error("Error playing video:", e));
+        setIsPlaying(true);
+      } else {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
     }
-  }, [isActive]);
+  }, [isActive, isYouTube]);
 
   // Manejador de canal de Sonido
   useEffect(() => {
-    if (playerRef.current) {
-        if(isMuted) playerRef.current.mute();
-        else playerRef.current.unMute();
+    if (isYouTube) {
+      if (playerRef.current) {
+          if(isMuted) playerRef.current.mute();
+          else playerRef.current.unMute();
+      }
+    } else {
+      if (videoRef.current) {
+        videoRef.current.muted = isMuted;
+      }
     }
-  }, [isMuted]);
+  }, [isMuted, isYouTube]);
 
   // Acción al presionar la pantalla
   const togglePlay = () => {
-    if (!playerRef.current) return;
-    
     // Animación feedback visual
     setShowPlayIcon(true);
     setTimeout(() => setShowPlayIcon(false), 800);
 
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-      setIsPlaying(false);
+    if (isYouTube) {
+      if (!playerRef.current) return;
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+        setIsPlaying(false);
+      } else {
+        playerRef.current.playVideo();
+        setIsPlaying(true);
+      }
     } else {
-      playerRef.current.playVideo();
-      setIsPlaying(true);
+      if (!videoRef.current) return;
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play().catch(e => console.error("Error playing video:", e));
+        setIsPlaying(true);
+      }
     }
   };
 
@@ -86,7 +115,7 @@ export function VideoPost({ url, isActive, author, description, song, likes, com
       rel: 0,            // No sugeridos ajenos
       modestbranding: 1, // Logo minimalista de YT
       loop: 1,           // Repetir ciclo (requisito reel)
-      playlist: url,     // Necesario setear en Loop API
+      playlist: isYouTube ? url : "",     // Necesario setear en Loop API
       fs: 0,             // No full script (lo estamos controlando internamente)
       playsinline: 1,    // Obligatorio en iOS webkit
       disablekb: 1,
@@ -100,14 +129,27 @@ export function VideoPost({ url, isActive, author, description, song, likes, com
         El contendor del YouTube se escala > 100% para "esconder" los bordes negros o 
         títulos del iframe y proveer una experiencia nativa de Video Reels inmersiva.
       */}
-      <div className="absolute inset-0 pointer-events-none w-full h-[120%] -top-[10%] sm:scale-150">
-        <YouTube 
-          videoId={url} 
-          opts={opts} 
-          onReady={onPlayerReady} 
-          className="w-full h-full pointer-events-none"
-          iframeClassName="w-full h-full pointer-events-none" 
-        />
+      <div className="absolute inset-0 pointer-events-none w-full h-full">
+        {isYouTube ? (
+          <div className="w-full h-[120%] -top-[10%] sm:scale-150 absolute inset-0">
+            <YouTube 
+              videoId={url} 
+              opts={opts} 
+              onReady={onPlayerReady} 
+              className="w-full h-full pointer-events-none"
+              iframeClassName="w-full h-full pointer-events-none" 
+            />
+          </div>
+        ) : (
+          <video 
+            ref={videoRef}
+            src={url}
+            loop
+            muted={isMuted}
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        )}
       </div>
 
       {/* Capa que intercepta clicks sobre el reproductor */}

@@ -26,22 +26,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [enrolledLanguages, setEnrolledLanguages] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // 1. Cargar persistencia de sesión
+    const savedAuth = localStorage.getItem('voxa_auth');
+    if (savedAuth) {
+      try {
+        const { role, name, languages, selectedLang, theme: savedTheme } = JSON.parse(savedAuth);
+        setIsLoggedIn(true);
+        setUserRole(role);
+        setUsername(name);
+        setEnrolledLanguages(languages || []);
+        setSelectedLanguage(selectedLang || null);
+        if (savedTheme) setTheme(savedTheme);
+      } catch (e) {
+        console.error("Error al cargar sesión persistente", e);
+      }
+    }
+    
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
-  }, [theme]);
+    
+    // Guardar tema en persistencia (si está logueado)
+    if (isLoggedIn) {
+      updatePersistence({ theme });
+    }
+  }, [theme, isLoggedIn]);
+
+  const updatePersistence = (data: any) => {
+    const current = JSON.parse(localStorage.getItem('voxa_auth') || '{}');
+    localStorage.setItem('voxa_auth', JSON.stringify({ ...current, ...data }));
+  };
 
   const handleLogin = (role: UserRole, name: string, languages: string[] = []) => {
     setIsLoggedIn(true);
     setUserRole(role);
     setUsername(name);
     setEnrolledLanguages(languages);
-    // Si solo tiene uno, seleccionarlo por defecto
+    
+    let selectedLang = null;
     if (languages.length === 1) {
-      setSelectedLanguage(languages[0]);
+      selectedLang = languages[0];
+      setSelectedLanguage(selectedLang);
     }
+
+    // Persistir datos
+    localStorage.setItem('voxa_auth', JSON.stringify({
+      role,
+      name,
+      languages,
+      selectedLang,
+      theme
+    }));
   };
 
   const handleLogout = () => {
@@ -50,10 +92,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(null);
     setEnrolledLanguages([]);
     setSelectedLanguage(null);
+    localStorage.removeItem('voxa_auth');
   };
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const handleSetSelectedLanguage = (lang: string | null) => {
+    setSelectedLanguage(lang);
+    updatePersistence({ selectedLang: lang });
   };
 
   const value = {
@@ -66,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onLogin: handleLogin,
     onLogout: handleLogout,
     toggleTheme,
-    setSelectedLanguage,
+    setSelectedLanguage: handleSetSelectedLanguage,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

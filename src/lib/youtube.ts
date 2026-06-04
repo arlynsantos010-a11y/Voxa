@@ -4,6 +4,9 @@ export interface YouTubeVideoData {
   description: string;
   channelTitle: string;
   thumbnailUrl: string;
+  videoUrl?: string;
+  type?: 'video' | 'image';
+  resource_type?: string;
   level?: string;
   addedAt?: number;
 }
@@ -28,40 +31,49 @@ export const MOCK_VIDEOS: YouTubeVideoData[] = [
   }
 ];
 
-// Lee de la base de datos simulada en cliente (localStorage)
-export function getLocalReels(): YouTubeVideoData[] {
-  if (typeof window === "undefined") return MOCK_VIDEOS;
-  
-  const saved = localStorage.getItem("campus_custom_reels");
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.sort((a: any, b: any) => (b.addedAt || 0) - (a.addedAt || 0));
-      }
-    } catch { }
+import { ref, get, set, remove, push, update } from "firebase/database";
+import { rtdb } from "./firebase";
+
+// Lee de Firebase (Sincronizado con el estado real)
+export async function getFirebaseReels(): Promise<YouTubeVideoData[]> {
+  try {
+    const reelsRef = ref(rtdb, 'reels');
+    const snapshot = await get(reelsRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      return Object.keys(data).map(key => ({
+        ...data[key],
+        id: key, // Usamos la key de Firebase como ID si no existe
+      })).sort((a: any, b: any) => (b.addedAt || 0) - (a.addedAt || 0));
+    }
+  } catch (error) {
+    console.error("Error fetching reels from Firebase:", error);
   }
   return MOCK_VIDEOS;
 }
 
-export function saveLocalReel(video: YouTubeVideoData) {
-  if (typeof window === "undefined") return;
-  // Obtenemos los existentes (limpiando los mocks)
-  const existing = getLocalReels().filter(v => v.id !== "jNQXAC9IVRw" && v.id !== "aqz-KE-bpKQ");
-  
-  const videoToSave = { ...video, addedAt: Date.now() };
-  const updated = [videoToSave, ...existing];
-  
-  // Deduplicamos por ID
-  const unique = updated.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-  localStorage.setItem("campus_custom_reels", JSON.stringify(unique));
+export async function saveFirebaseReel(video: YouTubeVideoData) {
+  try {
+    const reelsRef = ref(rtdb, `reels/${video.id}`);
+    const videoToSave = { 
+      ...video, 
+      addedAt: Date.now() 
+    };
+    await set(reelsRef, videoToSave);
+  } catch (error) {
+    console.error("Error saving reel to Firebase:", error);
+    throw error;
+  }
 }
 
-export function deleteLocalReel(id: string) {
-  if (typeof window === "undefined") return;
-  const existing = getLocalReels().filter(v => v.id !== "jNQXAC9IVRw" && v.id !== "aqz-KE-bpKQ");
-  const filtered = existing.filter(v => v.id !== id);
-  localStorage.setItem("campus_custom_reels", JSON.stringify(filtered));
+export async function deleteFirebaseReel(id: string) {
+  try {
+    const reelRef = ref(rtdb, `reels/${id}`);
+    await remove(reelRef);
+  } catch (error) {
+    console.error("Error deleting reel from Firebase:", error);
+    throw error;
+  }
 }
 
 export async function fetchVideoDetails(videoId: string): Promise<YouTubeVideoData | null> {

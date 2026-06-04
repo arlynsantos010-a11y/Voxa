@@ -15,9 +15,10 @@ import { useAuth } from '@/context/auth-context';
 import { format, isSameDay, startOfToday, getDay, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ref, get, push, set, remove } from "firebase/database";
+import { ref, get, push, set, remove, onValue } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Clase {
   id: string | number;
@@ -50,6 +51,7 @@ export default function ClasesEnVivoPage() {
   const [students, setStudents] = useState<any[]>([]);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // New States for UI Overhaul
   const [newClaseTitle, setNewClaseTitle] = useState("");
@@ -61,133 +63,144 @@ export default function ClasesEnVivoPage() {
   
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
 
-  useEffect(() => {
-    setMounted(true);
-    const fetchData = async () => {
-        // 1. Fetch Global Static Classes
-        const globalRef = ref(rtdb, 'classes/global');
-        const globalSnapshot = await get(globalRef);
-        let loadedGlobals: Clase[] = [];
-        if (globalSnapshot.exists()) {
-          const data = globalSnapshot.val();
-          loadedGlobals = Object.keys(data).map(k => ({
-            ...data[k],
-            id: k,
-            date: new Date(data[k].date)
-          }));
-        }
-
-        // 2. Fetch Personal Static Classes
-        let loadedPersonals: Clase[] = [];
-        if (userRole === 'student' && username) {
-            const studentKey = username.replace(/[.#$\[\]]/g, "_");
-            const personalSnapshot = await get(ref(rtdb, `users/${studentKey}/personalLinks`));
-            if (personalSnapshot.exists()) {
-                const data = personalSnapshot.val();
-                loadedPersonals = Object.keys(data).map(k => ({
-                  id: k,
-                  title: data[k].title,
-                  date: new Date(data[k].dateAdded),
-                  link: data[k].url
-                }));
-            }
-        }
-
-        // 3. Fetch Assignments (Professors/Admin)
-        let loadedAssignments: any[] = [];
-        if (userRole === 'professor' || userRole === 'admin') {
-            const usersSnapshot = await get(ref(rtdb, 'users'));
-            if (usersSnapshot.exists()) {
-                const usersData = usersSnapshot.val();
-                setStudents(Object.values(usersData).filter((u: any) => u.role === 'student'));
-                
-                Object.values(usersData).forEach((u: any) => {
-                    if (u.personalLinks) {
-                        Object.entries(u.personalLinks).forEach(([id, link]: [string, any]) => {
-                            loadedAssignments.push({
-                                ...link,
-                                id,
-                                date: new Date(link.dateAdded),
-                                target: u.username,
-                                link: link.url
-                            });
-                        });
-                    }
-                });
-            }
-        }
-
-        // 4. Generate Recurring Instances helper
-        const generateRecurringInstances = (rules: any, targetUser?: string) => {
-            const instances: Clase[] = [];
-            Object.keys(rules).forEach(ruleId => {
-                const rule = rules[ruleId];
-                if (!rule.days || !rule.time) return;
-                
-                const [hours, minutes] = rule.time.split(':').map(Number);
-                const dayMap: Record<string, number> = {
-                    "Domingo": 0, "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6
-                };
-
-                rule.days.forEach((dayName: string) => {
-                    const targetDay = dayMap[dayName];
-                    const today = startOfToday();
-                    
-                    // Prolonged 14-day window
-                    for (let i = 0; i < 14; i++) {
-                        const date = addDays(today, i);
-                        if (getDay(date) === targetDay) {
-                            const finalDate = new Date(date);
-                            finalDate.setHours(hours, minutes, 0, 0);
-                            instances.push({
-                                id: `${ruleId}_${i}`,
-                                ruleId: ruleId,
-                                title: rule.title,
-                                link: rule.link || rule.url,
-                                date: finalDate,
-                                target: targetUser || rule.target || "TODIVOS",
-                                isRecurring: true
-                            });
-                        }
-                    }
-                });
-            });
-            return instances;
+  // 4. Generate Recurring Instances helper (Memoria optimizada)
+  const generateRecurringInstances = useMemo(() => (rules: any, targetUser?: string) => {
+    const instances: Clase[] = [];
+    Object.keys(rules).forEach(ruleId => {
+        const rule = rules[ruleId];
+        if (!rule.days || !rule.time) return;
+        
+        const [hours, minutes] = rule.time.split(':').map(Number);
+        const dayMap: Record<string, number> = {
+            "Domingo": 0, "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6
         };
 
-        // Fetch Global Recurring
-        const recGlobalSnapshot = await get(ref(rtdb, 'classes/recurring/global'));
-        if (recGlobalSnapshot.exists()) {
-            loadedGlobals = [...loadedGlobals, ...generateRecurringInstances(recGlobalSnapshot.val())];
-        }
+        rule.days.forEach((dayName: string) => {
+            const targetDay = dayMap[dayName];
+            const today = startOfToday();
+            
+            // Prolonged 14-day window
+            for (let i = 0; i < 14; i++) {
+                const date = addDays(today, i);
+                if (getDay(date) === targetDay) {
+                    const finalDate = new Date(date);
+                    finalDate.setHours(hours, minutes, 0, 0);
+                    instances.push({
+                        id: `${ruleId}_${i}`,
+                        ruleId: ruleId,
+                        title: rule.title,
+                        link: rule.link || rule.url,
+                        date: finalDate,
+                        target: targetUser || rule.target || "TODIVOS",
+                        isRecurring: true
+                    });
+                }
+            }
+        });
+    });
+    return instances;
+  }, []);
 
-        // Fetch Personal Recurring (Student)
-        if (userRole === 'student' && username) {
+  useEffect(() => {
+    setMounted(true);
+    const unsubscribes: (() => void)[] = [];
+
+    // Real-time synchronization
+    const syncData = () => {
+        // 1. Global Static Classes
+        const globalRef = ref(rtdb, 'classes/global');
+        unsubscribes.push(onValue(globalRef, (snapshot) => {
+            let loadedGlobals: Clase[] = [];
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                loadedGlobals = Object.keys(data).map(k => ({
+                    ...data[k],
+                    id: k,
+                    date: new Date(data[k].date)
+                }));
+            }
+            setGlobalClases(prev => [...prev.filter(c => c.isRecurring), ...loadedGlobals]);
+            setIsLoading(false);
+        }));
+
+        // 2. Global Recurring
+        const recGlobalRef = ref(rtdb, 'classes/recurring/global');
+        unsubscribes.push(onValue(recGlobalRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const rules = snapshot.val();
+                const instances = generateRecurringInstances(rules);
+                setGlobalClases(prev => [...prev.filter(c => !c.isRecurring), ...instances]);
+            }
+        }));
+
+        // 3. User Specific Data
+        if (username) {
             const studentKey = username.replace(/[.#$\[\]]/g, "_");
-            const recPersSnapshot = await get(ref(rtdb, `users/${studentKey}/recurringLinks`));
-            if (recPersSnapshot.exists()) {
-                loadedPersonals = [...loadedPersonals, ...generateRecurringInstances(recPersSnapshot.val(), username)];
-            }
+            
+            // Personal Static
+            unsubscribes.push(onValue(ref(rtdb, `users/${studentKey}/personalLinks`), (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const loaded = Object.keys(data).map(k => ({
+                        id: k,
+                        title: data[k].title,
+                        date: new Date(data[k].dateAdded),
+                        link: data[k].url,
+                        target: username
+                    }));
+                    setPersonalClases(prev => [...prev.filter(c => c.isRecurring), ...loaded]);
+                } else {
+                    setPersonalClases(prev => prev.filter(c => c.isRecurring));
+                }
+            }));
+
+            // Personal Recurring
+            unsubscribes.push(onValue(ref(rtdb, `users/${studentKey}/recurringLinks`), (snapshot) => {
+                if (snapshot.exists()) {
+                    const rules = snapshot.val();
+                    const instances = generateRecurringInstances(rules, username);
+                    setPersonalClases(prev => [...prev.filter(c => !c.isRecurring), ...instances]);
+                } else {
+                    setPersonalClases(prev => prev.filter(c => !c.isRecurring));
+                }
+            }));
         }
 
-        // Fetch Recurring Assignments (Professor)
+        // 4. Assignments for Professors/Admins
         if (userRole === 'professor' || userRole === 'admin') {
-            const usersSnapshot = await get(ref(rtdb, 'users'));
-            if (usersSnapshot.exists()) {
-                Object.values(usersSnapshot.val()).forEach((u: any) => {
-                    if (u.recurringLinks) {
-                        loadedAssignments = [...loadedAssignments, ...generateRecurringInstances(u.recurringLinks, u.username)];
-                    }
-                });
-            }
+            unsubscribes.push(onValue(ref(rtdb, 'users'), (snapshot) => {
+                if (snapshot.exists()) {
+                    const usersData = snapshot.val();
+                    setStudents(Object.values(usersData).filter((u: any) => u.role === 'student'));
+                    
+                    let loadedAssignments: any[] = [];
+                    Object.values(usersData).forEach((u: any) => {
+                        // Static
+                        if (u.personalLinks) {
+                            Object.entries(u.personalLinks).forEach(([id, link]: [string, any]) => {
+                                loadedAssignments.push({
+                                    ...link,
+                                    id,
+                                    date: new Date(link.dateAdded),
+                                    target: u.username,
+                                    link: link.url
+                                });
+                            });
+                        }
+                        // Recurring
+                        if (u.recurringLinks) {
+                            loadedAssignments = [...loadedAssignments, ...generateRecurringInstances(u.recurringLinks, u.username)];
+                        }
+                    });
+                    setStudentAssignments(loadedAssignments.sort((a,b) => a.date.getTime() - b.date.getTime()));
+                }
+            }));
         }
-
-        setGlobalClases(loadedGlobals);
-        setPersonalClases(loadedPersonals);
-        setStudentAssignments(loadedAssignments);
     };
-    fetchData();
-  }, [userRole, username]);
+
+    syncData();
+    return () => unsubscribes.forEach(u => u());
+  }, [userRole, username, generateRecurringInstances]);
 
   const allDisplayedClases = useMemo(() => {
     const combined = userRole === 'student' 
@@ -326,7 +339,7 @@ export default function ClasesEnVivoPage() {
         setSelectedPairs([]);
         setTargetStudent("all");
         setCreateModalOpen(false);
-        window.location.reload(); 
+        // window.location.reload(); // ELIMINADO: Sincronización en tiempo real activa
     } catch (err) {
         toast({ variant: "destructive", title: "Error", description: "No se pudieron crear las sesiones." });
     }
@@ -352,7 +365,7 @@ export default function ClasesEnVivoPage() {
             }
         }
         toast({ title: "Sesión eliminada" });
-        window.location.reload();
+        // window.location.reload(); // ELIMINADO: Sincronización en tiempo real activa
     } catch (err) {
         toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la sesión." });
     }
@@ -402,7 +415,23 @@ export default function ClasesEnVivoPage() {
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                       <AnimatePresence mode="popLayout">
-                        {filteredClases.length > 0 ? (
+                        {isLoading ? (
+                            // Skeleton Loading State
+                            <div className="space-y-4">
+                                {[1, 2, 3].map((i) => (
+                                    <div key={i} className="flex flex-col sm:flex-row items-center justify-between p-6 bg-secondary/5 border border-white/5 rounded-[2rem] gap-6">
+                                        <div className="flex items-center gap-6 w-full">
+                                            <Skeleton className="w-16 h-16 rounded-[1.25rem]" />
+                                            <div className="flex-1 space-y-2">
+                                                <Skeleton className="h-6 w-3/4 rounded-lg" />
+                                                <Skeleton className="h-4 w-1/2 rounded-lg" />
+                                            </div>
+                                        </div>
+                                        <Skeleton className="h-12 w-28 rounded-2xl" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : filteredClases.length > 0 ? (
                             filteredClases.map((clase) => (
                             <motion.div 
                               key={clase.id}

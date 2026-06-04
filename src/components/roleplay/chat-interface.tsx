@@ -2,8 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Mic, ArrowLeft, Bot, User, Sparkles } from "lucide-react";
+import { Send, Mic, ArrowLeft, Bot, User, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { triggerSuccessConfetti } from "@/lib/confetti";
+import { useAuth } from "@/context/auth-context";
+
+const LANGUAGE_MAP: Record<string, string> = {
+  "Inglés": "en-US",
+  "Francés": "fr-FR",
+  "Alemán": "de-DE",
+  "Italiano": "it-IT",
+  "Portugués": "pt-BR",
+  "Japonés": "ja-JP",
+};
 
 interface Message {
   id: string;
@@ -18,7 +28,31 @@ export function ChatInterface({ scenario, onExit }: { scenario: any, onExit: () 
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const { selectedLanguage } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const langCode = (selectedLanguage && LANGUAGE_MAP[selectedLanguage]) || "en-US";
+
+  const speak = (text: string) => {
+    if (!isVoiceEnabled || typeof window === "undefined" || !window.speechSynthesis) return;
+    
+    // Cancel any existing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = langCode;
+    utterance.rate = 0.9; // Slightly slower for clarity
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    // Speak greeting on mount
+    const timer = setTimeout(() => {
+        speak(scenario.greeting);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -60,6 +94,7 @@ export function ChatInterface({ scenario, onExit }: { scenario: any, onExit: () 
       }
 
       setMessages(prev => [...prev, { id: Date.now().toString(), sender: "ai", text: reply }]);
+      speak(reply);
     } catch (error: any) {
       console.error("AI Error:", error);
       setMessages(prev => [...prev, { 
@@ -79,7 +114,7 @@ export function ChatInterface({ scenario, onExit }: { scenario: any, onExit: () 
     }
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.lang = "en-US"; // o basado en config
+    recognition.lang = langCode;
     
     recognition.onstart = () => setIsRecording(true);
     recognition.onresult = (event: any) => setInputText((prev) => prev ? prev + " " + event.results[0][0].transcript : event.results[0][0].transcript);
@@ -106,7 +141,18 @@ export function ChatInterface({ scenario, onExit }: { scenario: any, onExit: () 
             IA En línea
           </div>
         </div>
-        <div className="w-9 h-9" /> {/* spacer for center alignment */}
+        <div className="w-9 h-9 flex items-center justify-center">
+            <button 
+                onClick={() => {
+                    setIsVoiceEnabled(!isVoiceEnabled);
+                    if (isVoiceEnabled) window.speechSynthesis.cancel();
+                }}
+                className={`p-2 rounded-full transition-all ${isVoiceEnabled ? "text-primary bg-primary/10" : "text-muted-foreground bg-white/5"}`}
+                title={isVoiceEnabled ? "Silenciar Tutor" : "Activar Voz del Tutor"}
+            >
+                {isVoiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+        </div>
       </header>
 
       {/* Messages */}

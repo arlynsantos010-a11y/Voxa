@@ -8,7 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, PlaySquare, Plus, Search, Trash2, Video, VideoOff } from "lucide-react";
 import Link from "next/link";
-import { extractYouTubeId, fetchVideoDetails, saveLocalReel, getLocalReels, deleteLocalReel, YouTubeVideoData } from "@/lib/youtube";
+import { deleteFirebaseReel, extractYouTubeId, fetchVideoDetails, getFirebaseReels, saveFirebaseReel, YouTubeVideoData } from "@/lib/youtube";
+import { onValue, ref } from "firebase/database";
+import { rtdb } from "@/lib/firebase";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { uploadToCloudinary } from "@/lib/cloudinary";
+import { FileVideo, Image as ImageIcon, Loader2 } from "lucide-react";
 
 export default function ReelsManagerPage() {
   const { userRole } = useAuth();
@@ -16,7 +21,13 @@ export default function ReelsManagerPage() {
 
   const [urlInput, setUrlInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadType, setUploadType] = useState<"youtube" | "direct">("youtube");
   
+  // Direct Upload States
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   // Edit Form Fields
   const [draftVideo, setDraftVideo] = useState<YouTubeVideoData | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -28,11 +39,29 @@ export default function ReelsManagerPage() {
 
   useEffect(() => {
     if (userRole !== 'admin') router.push('/');
-    loadReels();
+    
+    // Sincronización en TIEMPO REAL
+    const reelsRef = ref(rtdb, 'reels');
+    const unsubscribe = onValue(reelsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const loadedReels = Object.keys(data).map(key => ({
+          ...data[key],
+          id: key,
+        })).sort((a: any, b: any) => (b.addedAt || 0) - (a.addedAt || 0));
+        setReels(loadedReels);
+      } else {
+        setReels([]);
+      }
+    });
+
+    return () => unsubscribe();
   }, [userRole, router]);
 
-  const loadReels = () => {
-    setReels(getLocalReels());
+  const loadReels = async () => {
+    // La sincronización ahora es automática vía onValue, pero mantenemos la firma por compatibilidad si se usa
+    const data = await getFirebaseReels();
+    setReels(data);
   };
 
   const handleFetchUrl = async () => {
@@ -55,24 +84,81 @@ export default function ReelsManagerPage() {
     }
   };
 
-  const handleSaveDraft = () => {
-    if (!draftVideo) return;
-    saveLocalReel({
-      ...draftVideo,
-      title: editTitle,
-      description: editDesc,
-      level: editLevel
-    });
-    setDraftVideo(null);
-    setUrlInput("");
-    loadReels();
-    alert("¡Reel subido existosamente!");
+  const handleDirectUpload = async () => {
+    if (!selectedFile && !selectedImage) {
+      alert("Por favor selecciona un video o una imagen.");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let videoUrl = "";
+      let thumbUrl = "";
+
+      if (selectedFile) {
+        const videoRes = await uploadToCloudinary(selectedFile, "video");
+        if (videoRes) {
+          videoUrl = videoRes.secure_url;
+        }
+      }
+
+      if (selectedImage) {
+        const imageRes = await uploadToCloudinary(selectedImage, "image");
+        if (imageRes) {
+          thumbUrl = imageRes.secure_url;
+        }
+      }
+
+      if (videoUrl || thumbUrl) {
+        setDraftVideo({
+          id: `direct_${Date.now()}`,
+          title: selectedFile?.name || selectedImage?.name || "Nuevo Contenido",
+          description: "",
+          channelTitle: "Admin Direct",
+          thumbnailUrl: thumbUrl || (videoUrl ? videoUrl.replace(/\.[^/.]+$/, ".jpg") : ""),
+          videoUrl: videoUrl, // New field for direct video
+          type: videoUrl ? 'video' : 'image' // New field to distinguish
+        } as any);
+        setEditTitle(selectedFile?.name || selectedImage?.name || "");
+      } else {
+        alert("Fallo en la subida a Cloudinary.");
+      }
+    } catch (error) {
+      alert("Error durante la subida.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if(confirm("¿Seguro de remover este video del feed de estudiantes?")) {
-      deleteLocalReel(id);
-      loadReels();
+  const handleSaveDraft = async () => {
+    if (!draftVideo) return;
+    setIsLoading(true);
+    try {
+      await saveFirebaseReel({
+        ...draftVideo,
+        title: editTitle,
+        description: editDesc,
+        level: editLevel
+      });
+      setDraftVideo(null);
+      setUrlInput("");
+      setSelectedFile(null);
+      setSelectedImage(null);
+      alert("¡Reel subido existosamente!");
+    } catch (error) {
+      alert("Error al guardar el reel.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if(confirm("¿Seguro de remover este contenido del feed?")) {
+      try {
+        await deleteFirebaseReel(id);
+      } catch (error) {
+        alert("Error al eliminar.");
+      }
     }
   };
 
@@ -108,21 +194,71 @@ export default function ReelsManagerPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-col gap-2">
-                  <Input 
-                    placeholder="https://youtu.be/..." 
-                    value={urlInput}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    className="bg-secondary/20 rounded-xl"
-                  />
-                  <Button 
-                    onClick={handleFetchUrl} 
-                    disabled={!urlInput || isLoading}
-                    className="w-full rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-black"
-                  >
-                    {isLoading ? "Buscando..." : "Cargar Metadatos"}
-                  </Button>
-                </div>
+                <Tabs defaultValue="youtube" className="w-full" onValueChange={(v) => setUploadType(v as any)}>
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="youtube" className="rounded-xl">YouTube URL</TabsTrigger>
+                    <TabsTrigger value="direct" className="rounded-xl">Subida Directa</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="youtube" className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                      <Input 
+                        placeholder="https://youtu.be/..." 
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        className="bg-secondary/20 rounded-xl"
+                      />
+                      <Button 
+                        onClick={handleFetchUrl} 
+                        disabled={!urlInput || isLoading}
+                        className="w-full rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-black"
+                      >
+                        {isLoading ? "Buscando..." : "Cargar Metadatos"}
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="direct" className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                          <FileVideo className="w-3 h-3" /> Video (Opcional)
+                        </label>
+                        <Input 
+                          type="file" 
+                          accept="video/*"
+                          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                          className="bg-secondary/20 rounded-xl cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3" /> Imagen/Miniatura
+                        </label>
+                        <Input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
+                          className="bg-secondary/20 rounded-xl cursor-pointer"
+                        />
+                      </div>
+
+                      <Button 
+                        onClick={handleDirectUpload} 
+                        disabled={(!selectedFile && !selectedImage) || isUploading}
+                        className="w-full rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-black"
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Subiendo a Cloudinary...
+                          </>
+                        ) : "Subir Archivos"}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
 
                 {draftVideo && (
                   <div className="mt-6 space-y-4 p-4 rounded-2xl bg-secondary/10 border border-white/5 animate-in fade-in slide-in-from-bottom-4">
