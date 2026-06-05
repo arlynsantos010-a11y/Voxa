@@ -17,8 +17,12 @@ export async function uploadToCloudinary(
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-  if (!cloudName || !uploadPreset) {
-    console.error("Cloudinary configuration missing (NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET)");
+  if (!cloudName) {
+    console.error("Cloudinary Error: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is missing.");
+    return null;
+  }
+  if (!uploadPreset) {
+    console.error("Cloudinary Error: NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET is missing.");
     return null;
   }
 
@@ -37,13 +41,13 @@ export async function uploadToCloudinary(
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Cloudinary upload error:", errorData);
+      console.error("Cloudinary API Error:", errorData);
       return null;
     }
 
     return await response.json();
   } catch (error) {
-    console.error("Error uploading to Cloudinary:", error);
+    console.error("Cloudinary Network/Fetch Error:", error);
     return null;
   }
 }

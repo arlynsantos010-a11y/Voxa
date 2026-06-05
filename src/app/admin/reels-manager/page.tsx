@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, PlaySquare, Plus, Search, Trash2, Video, VideoOff } from "lucide-react";
 import Link from "next/link";
-import { deleteFirebaseReel, extractYouTubeId, fetchVideoDetails, getFirebaseReels, saveFirebaseReel, YouTubeVideoData } from "@/lib/youtube";
+import { deleteFirebaseReel, extractYouTubeId, fetchVideoDetails, getFirebaseReels, saveFirebaseReel, YouTubeVideoData, extractInstagramId, extractTikTokId } from "@/lib/youtube";
 import { onValue, ref } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,7 +21,7 @@ export default function ReelsManagerPage() {
 
   const [urlInput, setUrlInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadType, setUploadType] = useState<"youtube" | "direct">("youtube");
+  const [uploadType, setUploadType] = useState<"youtube" | "direct" | "instagram" | "tiktok">("youtube");
   
   // Direct Upload States
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -65,22 +65,52 @@ export default function ReelsManagerPage() {
   };
 
   const handleFetchUrl = async () => {
-    const videoId = extractYouTubeId(urlInput);
+    let videoId: string | null = null;
+    let type: 'youtube' | 'instagram' | 'tiktok' = 'youtube';
+
+    if (uploadType === "youtube") {
+      videoId = extractYouTubeId(urlInput);
+      type = 'youtube';
+    } else if (uploadType === "instagram") {
+      videoId = extractInstagramId(urlInput);
+      type = 'instagram';
+    } else if (uploadType === "tiktok") {
+      videoId = extractTikTokId(urlInput);
+      type = 'tiktok';
+    }
+
     if (!videoId) {
-      alert("URL de YouTube no válida.");
+      alert(`URL de ${uploadType.toUpperCase()} no válida.`);
       return;
     }
 
     setIsLoading(true);
-    const details = await fetchVideoDetails(videoId);
-    setIsLoading(false);
-
-    if (details) {
-      setDraftVideo(details);
-      setEditTitle(details.title);
-      setEditDesc(details.description);
+    
+    if (type === 'youtube') {
+      const details = await fetchVideoDetails(videoId);
+      setIsLoading(false);
+      if (details) {
+        setDraftVideo({ ...details, type: 'youtube' });
+        setEditTitle(details.title);
+        setEditDesc(details.description);
+      } else {
+        alert("Fallo al obtener datos de YouTube. Verifica tu API key.");
+      }
     } else {
-      alert("Fallo al obtener datos o VideoPrivado. Verifica tu YouTube Data API key.");
+      // Para IG y TikTok no tenemos API directa, generamos metadatos genéricos
+      setIsLoading(false);
+      const socialTitle = type === 'instagram' ? "Instagram Reel" : "TikTok Video";
+      setDraftVideo({
+        id: videoId,
+        title: socialTitle,
+        description: `Contenido vinculado desde ${type}.`,
+        channelTitle: "Social Media",
+        thumbnailUrl: type === 'instagram' 
+          ? `https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=400&q=80` // Placeholder IG
+          : `https://images.unsplash.com/photo-1611605698335-84cc5253e06e?w=400&q=80`, // Placeholder TikTok
+        type: type
+      } as any);
+      setEditTitle(socialTitle);
     }
   };
 
@@ -94,6 +124,15 @@ export default function ReelsManagerPage() {
     try {
       let videoUrl = "";
       let thumbUrl = "";
+
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+      if (!cloudName || !uploadPreset) {
+        alert("Faltan las variables de entorno de Cloudinary. Por favor, configúralas en .env.local o en Vercel.");
+        setIsUploading(false);
+        return;
+      }
 
       if (selectedFile) {
         const videoRes = await uploadToCloudinary(selectedFile, "video");
@@ -121,7 +160,7 @@ export default function ReelsManagerPage() {
         } as any);
         setEditTitle(selectedFile?.name || selectedImage?.name || "");
       } else {
-        alert("Fallo en la subida a Cloudinary.");
+        alert("Fallo en la subida a Cloudinary. Revisa la consola (F12) para ver el error exacto.");
       }
     } catch (error) {
       alert("Error durante la subida.");
@@ -195,9 +234,11 @@ export default function ReelsManagerPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <Tabs defaultValue="youtube" className="w-full" onValueChange={(v) => setUploadType(v as any)}>
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="youtube" className="rounded-xl">YouTube URL</TabsTrigger>
-                    <TabsTrigger value="direct" className="rounded-xl">Subida Directa</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-4 mb-4">
+                    <TabsTrigger value="youtube" className="rounded-xl text-[10px]">YouTube</TabsTrigger>
+                    <TabsTrigger value="instagram" className="rounded-xl text-[10px]">Instagram</TabsTrigger>
+                    <TabsTrigger value="tiktok" className="rounded-xl text-[10px]">TikTok</TabsTrigger>
+                    <TabsTrigger value="direct" className="rounded-xl text-[10px]">Directa</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="youtube" className="space-y-4">
@@ -214,6 +255,42 @@ export default function ReelsManagerPage() {
                         className="w-full rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-black"
                       >
                         {isLoading ? "Buscando..." : "Cargar Metadatos"}
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="instagram" className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                    <Input 
+                        placeholder="https://www.instagram.com/reels/..." 
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        className="bg-secondary/20 rounded-xl"
+                      />
+                      <Button 
+                        onClick={handleFetchUrl} 
+                        disabled={!urlInput || isLoading}
+                        className="w-full rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-black"
+                      >
+                        {isLoading ? "Buscando..." : "Cargar Reel"}
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="tiktok" className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                    <Input 
+                        placeholder="https://www.tiktok.com/@user/video/..." 
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        className="bg-secondary/20 rounded-xl"
+                      />
+                      <Button 
+                        onClick={handleFetchUrl} 
+                        disabled={!urlInput || isLoading}
+                        className="w-full rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-black"
+                      >
+                        {isLoading ? "Buscando..." : "Cargar TikTok"}
                       </Button>
                     </div>
                   </TabsContent>

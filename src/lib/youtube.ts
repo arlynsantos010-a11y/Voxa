@@ -5,7 +5,7 @@ export interface YouTubeVideoData {
   channelTitle: string;
   thumbnailUrl: string;
   videoUrl?: string;
-  type?: 'video' | 'image';
+  type?: 'youtube' | 'instagram' | 'tiktok' | 'video' | 'image';
   resource_type?: string;
   level?: string;
   addedAt?: number;
@@ -115,4 +115,18 @@ export function extractYouTubeId(url: string): string | null {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
+}
+
+export function extractInstagramId(url: string): string | null {
+  // Matches instagram.com/reels/ID/ or instagram.com/p/ID/
+  const regExp = /(?:instagram\.com\/(?:p|reels|reel)\/)([\w-]+)/;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+}
+
+export function extractTikTokId(url: string): string | null {
+  // Matches tiktok.com/@user/video/ID
+  const regExp = /tiktok\.com\/@[\w.-]+\/video\/(\d+)/;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
 }

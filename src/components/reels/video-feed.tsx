@@ -107,6 +107,7 @@ export function VideoFeed() {
             <div key={video.id} id={video.id} className="reel-video-post w-full h-full snap-start relative">
               <VideoPost
                 url={video.videoUrl || video.id}
+                type={video.type}
                 isActive={video.id === activeVideoId}
                 author={video.channelTitle ? video.channelTitle.replace(/ /g, "_").toLowerCase() : "profesor"}
                 description={video.description || video.title}

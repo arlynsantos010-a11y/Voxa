@@ -6,7 +6,8 @@ import { Play, Pause, Volume2, VolumeX, Music } from "lucide-react";
 import YouTube, { YouTubeProps } from "react-youtube";
 
 interface VideoPostProps {
-  url: string; // The YouTube Video ID
+  url: string; // The Video ID or URL
+  type?: 'youtube' | 'instagram' | 'tiktok' | 'video' | 'image';
   isActive: boolean;
   author: string;
   description: string;
@@ -16,13 +17,13 @@ interface VideoPostProps {
   shares: number;
 }
 
-export function VideoPost({ url, isActive, author, description, song, likes, comments, shares }: VideoPostProps) {
+export function VideoPost({ url, type = 'youtube', isActive, author, description, song, likes, comments, shares }: VideoPostProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(true); // Mutado por defecto por browsers policy
   const [showPlayIcon, setShowPlayIcon] = useState<boolean>(false);
   const playerRef = useRef<any>(null);
 
-  const isYouTube = !url.startsWith('http');
+  const isYouTube = type === 'youtube';
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Escucha cambios en isActive desde el IntersectionObserver 
@@ -130,7 +131,7 @@ export function VideoPost({ url, isActive, author, description, song, likes, com
         títulos del iframe y proveer una experiencia nativa de Video Reels inmersiva.
       */}
       <div className="absolute inset-0 pointer-events-none w-full h-full">
-        {isYouTube ? (
+        {type === 'youtube' ? (
           <div className="w-full h-[120%] -top-[10%] sm:scale-150 absolute inset-0">
             <YouTube 
               videoId={url} 
@@ -140,6 +141,19 @@ export function VideoPost({ url, isActive, author, description, song, likes, com
               iframeClassName="w-full h-full pointer-events-none" 
             />
           </div>
+        ) : type === 'instagram' ? (
+          <iframe
+            src={`https://www.instagram.com/reels/${url}/embed/`}
+            className="w-full h-full border-none"
+            allowTransparency
+            allow="autoplay"
+          />
+        ) : type === 'tiktok' ? (
+          <iframe
+            src={`https://www.tiktok.com/embed/v2/${url}`}
+            className="w-full h-full border-none"
+            allow="autoplay"
+          />
         ) : (
           <video 
             ref={videoRef}
