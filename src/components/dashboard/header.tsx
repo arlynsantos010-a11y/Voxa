@@ -36,7 +36,7 @@ export default function DashboardHeader({
               Voxa
             </span>
           </Link>
-          <span className={`hidden sm:inline-block rounded-full px-3 py-1 text-xs font-bold ${userRole === 'admin' ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
+          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] sm:px-3 sm:py-1 sm:text-xs font-bold ${userRole === 'admin' ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
             {getRoleBadgeLabel()}
           </span>
         </div>
@@ -86,8 +86,8 @@ export default function DashboardHeader({
             size="sm"
             className="rounded-full border-primary/20 hover:bg-primary/10"
           >
-            <LogOut className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Salir</span>
+            <LogOut className="w-4 h-4 mr-1.5 sm:mr-2" />
+            <span className="inline text-xs sm:text-sm">Salir</span>
           </Button>
         </nav>
       </div>

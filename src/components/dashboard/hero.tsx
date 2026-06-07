@@ -22,8 +22,8 @@ export default function DashboardHero({ userRole, username }: DashboardHeroProps
   };
 
   return (
-    <section className="container mx-auto py-12 px-4">
-      <div className="glass-card relative overflow-hidden rounded-[2.5rem] p-8 lg:p-16 border border-white/10">
+    <section className="container mx-auto py-8 sm:py-12 px-4">
+      <div className="glass-card relative overflow-hidden rounded-[2.5rem] p-6 sm:p-8 lg:p-16 border border-white/10">
         {/* Luces decorativas de fondo */}
         <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
         <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-accent/20 rounded-full blur-[100px]" />
@@ -33,14 +33,14 @@ export default function DashboardHero({ userRole, username }: DashboardHeroProps
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest mb-8 ${isAdmin ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest mb-6 sm:mb-8 ${isAdmin ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}
             >
               {isAdmin ? <ShieldCheck className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
               <span>{isAdmin ? 'System Administrator' : 'Campus Virtual 2025'}</span>
             </motion.div>
             
             <motion.h1
-              className="font-headline text-5xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]"
+              className="font-headline text-3xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -50,7 +50,7 @@ export default function DashboardHero({ userRole, username }: DashboardHeroProps
             </motion.h1>
             
             <motion.p
-              className="mt-8 text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl"
+              className="mt-6 sm:mt-8 text-base sm:text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -59,26 +59,26 @@ export default function DashboardHero({ userRole, username }: DashboardHeroProps
             </motion.p>
             
             <motion.div
-              className="mt-12 flex flex-wrap gap-4 justify-center lg:justify-start"
+              className="mt-8 sm:mt-12 flex flex-row flex-wrap gap-3 sm:gap-4 justify-center lg:justify-start"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
               {!isAdmin && (
-                <Button size="lg" className="h-16 px-10 text-lg font-bold rounded-2xl group shadow-2xl shadow-primary/20" asChild>
+                <Button className="h-12 sm:h-16 px-6 sm:px-10 text-sm sm:text-lg font-bold rounded-2xl group shadow-2xl shadow-primary/20" asChild>
                   <Link href="/aula-virtual">
                     Entrar al Aula
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="ml-1.5 sm:ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
               )}
               {isAdmin && (
-                <Button size="lg" variant="destructive" className="h-16 px-10 text-lg font-bold rounded-2xl group shadow-2xl shadow-red-500/20">
+                <Button variant="destructive" className="h-12 sm:h-16 px-6 sm:px-10 text-sm sm:text-lg font-bold rounded-2xl group shadow-2xl shadow-red-500/20">
                   Gestión del Sistema
-                  <ShieldCheck className="ml-2 w-5 h-5" />
+                  <ShieldCheck className="ml-1.5 sm:ml-2 w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               )}
-              <Button variant="outline" size="lg" className="h-16 px-10 text-lg font-bold rounded-2xl border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-all" asChild>
+              <Button variant="outline" className="h-12 sm:h-16 px-6 sm:px-10 text-sm sm:text-lg font-bold rounded-2xl border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-all" asChild>
                   <Link href="/perfil">Mi Perfil</Link>
               </Button>
             </motion.div>
