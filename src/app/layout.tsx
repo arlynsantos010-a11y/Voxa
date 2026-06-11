@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
 import { CreativeBackground } from '@/components/ui/creative-background';
 import { PWARegister } from '@/components/pwa-register';
+import { PWAProvider } from '@/context/pwa-context';
 
 export const metadata: Metadata = {
   title: {
@@ -50,13 +51,15 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased relative min-h-screen">
         <AuthProvider>
-          <CreativeBackground />
-          <div className="relative z-10 min-h-screen flex flex-col">
-            {children}
-          </div>
+          <PWAProvider>
+            <CreativeBackground />
+            <div className="relative z-10 min-h-screen flex flex-col">
+              {children}
+            </div>
+            <PWARegister />
+          </PWAProvider>
         </AuthProvider>
         <Toaster />
-        <PWARegister />
       </body>
     </html>
   );

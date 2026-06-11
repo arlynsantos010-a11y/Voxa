@@ -6,6 +6,7 @@ import { LogOut, SatelliteDish, Sun, Moon, Bell } from "lucide-react";
 import type { UserRole } from "@/app/page";
 import { useAuth } from "@/context/auth-context";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { usePWA } from "@/context/pwa-context";
 
 type DashboardHeaderProps = {
   userRole: UserRole;
@@ -17,6 +18,7 @@ export default function DashboardHeader({
   onLogout,
 }: DashboardHeaderProps) {
   const { theme, toggleTheme } = useAuth();
+  const { isInstallable, promptInstall } = usePWA();
 
   const getRoleBadgeLabel = () => {
     switch(userRole) {
@@ -42,6 +44,19 @@ export default function DashboardHeader({
         </div>
         <nav className="flex items-center justify-end space-x-2 sm:space-x-4">
           
+          {isInstallable && (
+            <Button
+              onClick={promptInstall}
+              variant="outline"
+              size="sm"
+              className="rounded-full border-accent/30 bg-accent/5 hover:bg-accent/20 text-accent font-bold h-9 px-3 flex items-center gap-1.5 shadow-lg shadow-accent/5 animate-pulse hover:animate-none transition-all duration-300 animate-duration-[2000ms]"
+            >
+              <span className="text-[10px] sm:text-xs">Instalar</span>
+              <span className="hidden min-[400px]:inline text-[10px] sm:text-xs">App</span>
+              <span>✨</span>
+            </Button>
+          )}
+
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full text-primary hover:bg-primary/10 relative">
