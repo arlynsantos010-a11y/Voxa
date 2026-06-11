@@ -45,16 +45,20 @@ export default function DashboardHeader({
         <nav className="flex items-center justify-end space-x-2 sm:space-x-4">
           
           {isInstallable && (
-            <Button
+            <button
               onClick={promptInstall}
-              variant="outline"
-              size="sm"
-              className="rounded-full border-accent/30 bg-accent/5 hover:bg-accent/20 text-accent font-bold h-9 px-3 flex items-center gap-1.5 shadow-lg shadow-accent/5 animate-pulse hover:animate-none transition-all duration-300 animate-duration-[2000ms]"
+              className="relative flex h-9 items-center justify-center overflow-hidden rounded-full p-[1px] focus:outline-none transition-all duration-300 active:scale-95 shadow-lg shadow-accent/10 group shrink-0"
             >
-              <span className="text-[10px] sm:text-xs">Instalar</span>
-              <span className="hidden min-[400px]:inline text-[10px] sm:text-xs">App</span>
-              <span>✨</span>
-            </Button>
+              {/* Haz de luz giratorio en el borde */}
+              <span className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_60%,hsl(var(--accent))_100%)]" />
+              
+              {/* Contenido interior que cubre el centro */}
+              <span className="flex items-center justify-center gap-1 bg-background hover:bg-background/80 text-accent rounded-full h-full w-full px-3 py-1 text-[10px] sm:text-xs font-bold transition-all relative z-10">
+                <span>Instalar</span>
+                <span className="hidden min-[400px]:inline">App</span>
+                <span>✨</span>
+              </span>
+            </button>
           )}
 
           <Popover>
