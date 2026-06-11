@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
 import { CreativeBackground } from '@/components/ui/creative-background';
+import { PWARegister } from '@/components/pwa-register';
 
 export const metadata: Metadata = {
   title: {
@@ -16,6 +17,15 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'es_ES',
     siteName: 'Voxa',
+  },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Voxa',
+  },
+  icons: {
+    apple: '/icons/icon-192.png',
   },
 };
 
@@ -46,6 +56,7 @@ export default function RootLayout({
           </div>
         </AuthProvider>
         <Toaster />
+        <PWARegister />
       </body>
     </html>
   );
