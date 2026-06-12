@@ -25,7 +25,7 @@ export function VideoActions({ likes, comments, shares, isLikedInitial = false }
 
   return (
     <div 
-      className="flex flex-col items-center gap-6 absolute right-4 bottom-24 text-white drop-shadow-md z-20"
+      className="flex flex-col items-center gap-4 absolute right-4 bottom-14 text-white drop-shadow-md z-20"
       onClick={handleStopPropagation}
       onMouseDown={handleStopPropagation}
       onTouchStart={handleStopPropagation}

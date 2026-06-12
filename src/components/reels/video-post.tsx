@@ -186,18 +186,16 @@ export function VideoPost({ url, type = 'youtube', isActive, author, description
 
       {/* Header - Control de Silencio */}
       <div className="absolute top-6 left-4 right-4 flex justify-between items-center z-30 pointer-events-none">
-        <div className="flex items-center gap-3 pointer-events-auto">
-          <h2 className="text-white font-extrabold text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">Reels</h2>
-          <button 
-            onClick={toggleMute}
-            onMouseDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            className="p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md hover:bg-black/60 transition active:scale-95 shadow-lg"
-            title={isMuted ? "Activar sonido" : "Silenciar"}
-          >
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-          </button>
-        </div>
+        <h2 className="text-white font-extrabold text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">Reels</h2>
+        <button 
+          onClick={toggleMute}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md hover:bg-black/60 transition active:scale-95 pointer-events-auto shadow-lg"
+          title={isMuted ? "Activar sonido" : "Silenciar"}
+        >
+          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </button>
       </div>
 
       {/* Bottom Footer Details */}
