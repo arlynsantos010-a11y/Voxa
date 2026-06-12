@@ -20,13 +20,7 @@ export default function DashboardHeader({
   const { theme, toggleTheme } = useAuth();
   const { isInstallable, promptInstall } = usePWA();
 
-  const getRoleBadgeLabel = () => {
-    switch(userRole) {
-      case 'admin': return 'MODO ADMINISTRADOR';
-      case 'professor': return 'MODO PROFESOR';
-      default: return 'MODO ESTUDIANTE';
-    }
-  };
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/60 backdrop-blur-md">
@@ -38,9 +32,7 @@ export default function DashboardHeader({
               Voxa
             </span>
           </Link>
-          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] sm:px-3 sm:py-1 sm:text-xs font-bold ${userRole === 'admin' ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
-            {getRoleBadgeLabel()}
-          </span>
+
         </div>
         <nav className="flex items-center justify-end space-x-2 sm:space-x-4">
           

@@ -123,7 +123,6 @@ export default function Dashboard({
 
             {/* Todo lo demás debajo de los botones */}
             <div className="w-full mt-6">
-              <DashboardHero userRole={userRole} username={username} />
               <div className="container mx-auto px-4">
                 <motion.div
                   initial={{ opacity: 0, y: 40 }}
