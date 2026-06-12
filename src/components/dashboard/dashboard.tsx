@@ -9,7 +9,7 @@ import AdminPanel from "./admin-panel";
 import DashboardFooter from "./footer";
 import { useAuth } from "@/context/auth-context";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ref, onValue } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { MOCK_VIDEOS, YouTubeVideoData } from "@/lib/youtube";
@@ -55,6 +55,23 @@ export default function Dashboard({
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [mouseDownStart, setMouseDownStart] = useState<{ x: number; y: number } | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
+
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Prevenir scroll de la pagina al deslizar en la tarjeta de Reels
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const handleTouchMovePrevent = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+
+    card.addEventListener('touchmove', handleTouchMovePrevent, { passive: false });
+    return () => {
+      card.removeEventListener('touchmove', handleTouchMovePrevent);
+    };
+  }, []);
 
   useEffect(() => {
     if (userRole !== "student") return;
@@ -195,6 +212,7 @@ export default function Dashboard({
               >
                 {/* Contenedor del reproductor de Reels */}
                 <div 
+                  ref={cardRef}
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
