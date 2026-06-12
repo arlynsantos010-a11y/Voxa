@@ -50,6 +50,7 @@ export default function Dashboard({
   // Reels list and active index tracking
   const [reelsList, setReelsList] = useState<YouTubeVideoData[]>([]);
   const [activeReelIndex, setActiveReelIndex] = useState<number>(0);
+  const currentReel = reelsList[activeReelIndex] || null;
 
   // Swipe/drag detection state
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -71,7 +72,7 @@ export default function Dashboard({
     return () => {
       card.removeEventListener('touchmove', handleTouchMovePrevent);
     };
-  }, []);
+  }, [currentReel]);
 
   useEffect(() => {
     if (userRole !== "student") return;
@@ -193,8 +194,6 @@ export default function Dashboard({
   };
 
   if (!userRole) return null;
-
-  const currentReel = reelsList[activeReelIndex] || null;
 
   return (
     <div className="flex flex-col min-h-screen">
