@@ -17,6 +17,7 @@ import { VideoPost } from "@/components/reels/video-post";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type DashboardProps = {
   progress: {
@@ -44,7 +45,16 @@ export default function Dashboard({
   username
 }: DashboardProps) {
   const { onLogout } = useAuth();
-  const [reel, setReel] = useState<YouTubeVideoData | null>(null);
+  const router = useRouter();
+
+  // Reels list and active index tracking
+  const [reelsList, setReelsList] = useState<YouTubeVideoData[]>([]);
+  const [activeReelIndex, setActiveReelIndex] = useState<number>(0);
+
+  // Swipe/drag detection state
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [mouseDownStart, setMouseDownStart] = useState<{ x: number; y: number } | null>(null);
+  const [isSwiping, setIsSwiping] = useState(false);
 
   useEffect(() => {
     if (userRole !== "student") return;
@@ -59,19 +69,115 @@ export default function Dashboard({
         })).sort((a: any, b: any) => (b.addedAt || 0) - (a.addedAt || 0));
         
         if (loadedReels.length > 0) {
-          setReel(loadedReels[0]);
+          setReelsList(loadedReels);
         } else {
-          setReel(MOCK_VIDEOS[0]);
+          setReelsList(MOCK_VIDEOS);
         }
       } else {
-        setReel(MOCK_VIDEOS[0]);
+        setReelsList(MOCK_VIDEOS);
       }
+      setActiveReelIndex(0);
     });
 
     return () => unsubscribe();
   }, [userRole]);
 
+  // Touch handlers for swipe detection
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart({
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    });
+    setIsSwiping(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+    const diffY = touchStart.y - e.touches[0].clientY;
+    const diffX = touchStart.x - e.touches[0].clientX;
+    if (Math.abs(diffY) > 10 || Math.abs(diffX) > 10) {
+      setIsSwiping(true);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart || reelsList.length === 0) return;
+    
+    const diffY = touchStart.y - e.changedTouches[0].clientY;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(diffY) > minSwipeDistance) {
+      if (diffY > 0) {
+        // Swipe Up -> Siguiente
+        if (activeReelIndex < reelsList.length - 1) {
+          setActiveReelIndex(prev => prev + 1);
+        } else {
+          setActiveReelIndex(0); // Bucle
+        }
+      } else {
+        // Swipe Down -> Anterior
+        if (activeReelIndex > 0) {
+          setActiveReelIndex(prev => prev - 1);
+        } else {
+          setActiveReelIndex(reelsList.length - 1); // Bucle inverso
+        }
+      }
+    }
+    setTouchStart(null);
+  };
+
+  // Mouse drag handlers for desktop swipe emulation
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setMouseDownStart({
+      x: e.clientX,
+      y: e.clientY
+    });
+    setIsSwiping(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!mouseDownStart) return;
+    const diffY = mouseDownStart.y - e.clientY;
+    const diffX = mouseDownStart.x - e.clientX;
+    if (Math.abs(diffY) > 10 || Math.abs(diffX) > 10) {
+      setIsSwiping(true);
+    }
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!mouseDownStart || reelsList.length === 0) return;
+    
+    const diffY = mouseDownStart.y - e.clientY;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(diffY) > minSwipeDistance) {
+      if (diffY > 0) {
+        // Drag Up -> Siguiente
+        if (activeReelIndex < reelsList.length - 1) {
+          setActiveReelIndex(prev => prev + 1);
+        } else {
+          setActiveReelIndex(0);
+        }
+      } else {
+        // Drag Down -> Anterior
+        if (activeReelIndex > 0) {
+          setActiveReelIndex(prev => prev - 1);
+        } else {
+          setActiveReelIndex(reelsList.length - 1);
+        }
+      }
+    }
+    setMouseDownStart(null);
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isSwiping) return;
+    router.push('/aula-virtual/reels');
+  };
+
   if (!userRole) return null;
+
+  const currentReel = reelsList[activeReelIndex] || null;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -80,7 +186,7 @@ export default function Dashboard({
       <main className="flex-grow pb-12">
         {userRole === "student" ? (
           <div className="w-full flex flex-col items-center px-4 pt-6 sm:pt-10">
-            {reel ? (
+            {currentReel ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -88,17 +194,29 @@ export default function Dashboard({
                 className="w-full flex flex-col items-center justify-center animate-fade-in"
               >
                 {/* Contenedor del reproductor de Reels */}
-                <div className="w-[320px] min-[400px]:w-[355px] h-[55vh] min-h-[460px] max-h-[560px] bg-black rounded-[2.5rem] overflow-hidden relative border-[6px] border-neutral-900 shadow-[0_20px_50px_rgba(0,0,0,0.5)] mx-auto">
+                <div 
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onClick={handleClick}
+                  className="w-[320px] min-[400px]:w-[355px] h-[55vh] min-h-[460px] max-h-[560px] bg-black rounded-[2.5rem] overflow-hidden relative border-[6px] border-neutral-900 shadow-[0_20px_50px_rgba(0,0,0,0.5)] mx-auto cursor-pointer select-none"
+                >
                   <VideoPost
-                    url={videoUrlResolver(reel)}
-                    type={reel.type}
+                    key={currentReel.id}
+                    url={videoUrlResolver(currentReel)}
+                    type={currentReel.type}
                     isActive={true} // Siempre en reproducción en el inicio
-                    author={reel.channelTitle ? reel.channelTitle.replace(/ /g, "_").toLowerCase() : "profesor"}
-                    description={reel.description || reel.title}
-                    song={`Recomendado para: ${reel.level || "Todos"}`}
+                    author={currentReel.channelTitle ? currentReel.channelTitle.replace(/ /g, "_").toLowerCase() : "profesor"}
+                    description={currentReel.description || currentReel.title}
+                    song={`Recomendado para: ${currentReel.level || "Todos"}`}
                     likes={585}
                     comments={9}
                     shares={2}
+                    defaultMuted={false} // Volumen activado por defecto
+                    onClick={handleClick}
                   />
                 </div>
                 

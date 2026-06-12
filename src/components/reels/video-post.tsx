@@ -15,11 +15,13 @@ interface VideoPostProps {
   likes: number;
   comments: number;
   shares: number;
+  defaultMuted?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
-export function VideoPost({ url, type = 'youtube', isActive, author, description, song, likes, comments, shares }: VideoPostProps) {
+export function VideoPost({ url, type = 'youtube', isActive, author, description, song, likes, comments, shares, defaultMuted = true, onClick }: VideoPostProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [isMuted, setIsMuted] = useState<boolean>(true); // Mutado por defecto por browsers policy
+  const [isMuted, setIsMuted] = useState<boolean>(defaultMuted); // Configurado por prop
   const [showPlayIcon, setShowPlayIcon] = useState<boolean>(false);
   const playerRef = useRef<any>(null);
 
@@ -101,6 +103,7 @@ export function VideoPost({ url, type = 'youtube', isActive, author, description
     playerRef.current = event.target;
     // Si el video está activo apenas renderiza, force play.
     if (isMuted) event.target.mute();
+    else event.target.unMute();
     if (isActive) {
        event.target.playVideo();
        setIsPlaying(true);
@@ -125,7 +128,10 @@ export function VideoPost({ url, type = 'youtube', isActive, author, description
   };
 
   return (
-    <div className="relative w-full h-full bg-black snap-start shrink-0 overflow-hidden group">
+    <div 
+      className="relative w-full h-full bg-black snap-start shrink-0 overflow-hidden group"
+      onClick={onClick}
+    >
       {/* 
         El contendor del YouTube se escala > 100% para "esconder" los bordes negros o 
         títulos del iframe y proveer una experiencia nativa de Video Reels inmersiva.
@@ -167,7 +173,7 @@ export function VideoPost({ url, type = 'youtube', isActive, author, description
       </div>
 
       {/* Capa que intercepta clicks sobre el reproductor */}
-      <div className="absolute inset-0 z-0 cursor-pointer" onClick={togglePlay} />
+      <div className="absolute inset-0 z-0 cursor-pointer" onClick={onClick ? undefined : togglePlay} />
 
       {/* Overlay Animado para Play/Pause */}
       <div 
@@ -183,6 +189,8 @@ export function VideoPost({ url, type = 'youtube', isActive, author, description
         <h2 className="text-white font-extrabold text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">Reels</h2>
         <button 
           onClick={toggleMute}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           className="p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md hover:bg-black/60 transition active:scale-95 pointer-events-auto shadow-lg"
           title={isMuted ? "Activar sonido" : "Silenciar"}
         >
