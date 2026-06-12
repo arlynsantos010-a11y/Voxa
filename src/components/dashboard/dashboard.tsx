@@ -9,6 +9,14 @@ import AdminPanel from "./admin-panel";
 import DashboardFooter from "./footer";
 import { useAuth } from "@/context/auth-context";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { ref, onValue } from "firebase/database";
+import { rtdb } from "@/lib/firebase";
+import { MOCK_VIDEOS, YouTubeVideoData } from "@/lib/youtube";
+import { VideoPost } from "@/components/reels/video-post";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 type DashboardProps = {
   progress: {
@@ -36,27 +44,99 @@ export default function Dashboard({
   username
 }: DashboardProps) {
   const { onLogout } = useAuth();
+  const [reel, setReel] = useState<YouTubeVideoData | null>(null);
+
+  useEffect(() => {
+    if (userRole !== "student") return;
+
+    const reelsRef = ref(rtdb, 'reels');
+    const unsubscribe = onValue(reelsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const loadedReels = Object.keys(data).map(key => ({
+          ...data[key],
+          id: key,
+        })).sort((a: any, b: any) => (b.addedAt || 0) - (a.addedAt || 0));
+        
+        if (loadedReels.length > 0) {
+          setReel(loadedReels[0]);
+        } else {
+          setReel(MOCK_VIDEOS[0]);
+        }
+      } else {
+        setReel(MOCK_VIDEOS[0]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [userRole]);
 
   if (!userRole) return null;
 
   return (
     <div className="flex flex-col min-h-screen">
       <DashboardHeader userRole={userRole} onLogout={onLogout} />
-      <main className="flex-grow pb-12">
-        <DashboardHero userRole={userRole} username={username} />
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            {userRole === "student" && <StudentProgress progress={progress} />}
-            {userRole === "professor" && <ProfessorPanel />}
-            {userRole === "admin" && <AdminPanel />}
-          </motion.div>
-        </div>
+      
+      <main className="flex-grow flex items-center justify-center py-6 sm:py-10">
+        {userRole === "student" ? (
+          <div className="w-full flex flex-col items-center justify-center px-4">
+            {reel ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="w-full flex flex-col items-center justify-center"
+              >
+                {/* Contenedor del reproductor de Reels */}
+                <div className="w-[320px] min-[400px]:w-[355px] h-[55vh] min-h-[460px] max-h-[560px] bg-black rounded-[2.5rem] overflow-hidden relative border-[6px] border-neutral-900 shadow-[0_20px_50px_rgba(0,0,0,0.5)] mx-auto">
+                  <VideoPost
+                    url={videoUrlResolver(reel)}
+                    type={reel.type}
+                    isActive={true} // Siempre en reproducción en el inicio
+                    author={reel.channelTitle ? reel.channelTitle.replace(/ /g, "_").toLowerCase() : "profesor"}
+                    description={reel.description || reel.title}
+                    song={`Recomendado para: ${reel.level || "Todos"}`}
+                    likes={585}
+                    comments={9}
+                    shares={2}
+                  />
+                </div>
+                
+                {/* Botones inferiores alineados */}
+                <div className="mt-5 flex gap-3.5 justify-center w-full max-w-[320px] min-[400px]:max-w-[355px] mx-auto">
+                  <Button className="flex-1 h-12 text-sm sm:text-base font-bold rounded-2xl bg-primary text-primary-foreground hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20" asChild>
+                    <Link href="/aula-virtual">
+                      Entrar al Aula
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" className="flex-1 h-12 text-sm sm:text-base font-bold rounded-2xl border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-all active:scale-95" asChild>
+                    <Link href="/perfil">Mi Perfil</Link>
+                  </Button>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="w-[320px] min-[400px]:w-[355px] h-[55vh] min-h-[460px] max-h-[560px] flex items-center justify-center bg-neutral-900 rounded-[2.5rem] border-[6px] border-neutral-800 animate-pulse mx-auto">
+                <p className="text-muted-foreground text-sm font-semibold">Cargando Reels...</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="container mx-auto px-4 w-full">
+            <DashboardHero userRole={userRole} username={username} />
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              {userRole === "professor" && <ProfessorPanel />}
+              {userRole === "admin" && <AdminPanel />}
+            </motion.div>
+          </div>
+        )}
       </main>
-      <DashboardFooter />
+
+      {userRole !== "student" && <DashboardFooter />}
 
       {/* Botón Flotante de WhatsApp exclusivo para Estudiantes */}
       {userRole === "student" && (
@@ -76,4 +156,9 @@ export default function Dashboard({
       )}
     </div>
   );
+}
+
+// Resolver URL de video soportando campos opcionales
+function videoUrlResolver(video: YouTubeVideoData): string {
+  return video.videoUrl || video.id;
 }

@@ -8,6 +8,7 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { StreakCounter } from '@/components/dashboard/streak-counter';
+import StudentProgress from "@/components/dashboard/student-progress";
 
 export default function AulaVirtualPage() {
   const { userRole, enrolledLanguages, selectedLanguage, setSelectedLanguage } = useAuth();
@@ -181,6 +182,12 @@ export default function AulaVirtualPage() {
             );
           })}
         </div>
+
+        {userRole === 'student' && selectedLanguage && (
+          <div className="mt-16 max-w-6xl mx-auto border-t border-white/10 pt-10">
+            <StudentProgress progress={{ virtual: 80, course1: 65, course2: 45 }} />
+          </div>
+        )}
       </main>
     </div>
   );
