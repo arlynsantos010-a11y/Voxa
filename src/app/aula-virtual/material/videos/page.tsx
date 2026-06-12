@@ -38,6 +38,21 @@ export default function VideosGestionPage() {
   const [targetType, setTargetType] = useState<'all' | 'specific'>('all');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
+  // Tipo de Carga: archivo o enlace
+  const [uploadMethod, setUploadMethod] = useState<'file' | 'link'>('file');
+  const [linkTitle, setLinkTitle] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+
+  const handleOpenUploadModal = () => {
+    setUploadMethod('file');
+    setLinkTitle('');
+    setLinkUrl('');
+    setSelectedFile(null);
+    setTargetType('all');
+    setSelectedStudents([]);
+    setUploadModalOpen(true);
+  };
+
   // Function to load all data from database
   const loadData = async () => {
     try {
@@ -113,13 +128,32 @@ export default function VideosGestionPage() {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
+    if (uploadMethod === 'file' && !selectedFile) {
       toast({
         variant: "destructive",
         title: "Ningún archivo seleccionado",
         description: "Por favor, selecciona un video para subir.",
       });
       return;
+    }
+
+    if (uploadMethod === 'link') {
+      if (!linkTitle.trim()) {
+        toast({
+          variant: "destructive",
+          title: "Título requerido",
+          description: "Por favor, ingresa un título para el video.",
+        });
+        return;
+      }
+      if (!linkUrl.trim()) {
+        toast({
+          variant: "destructive",
+          title: "Enlace requerido",
+          description: "Por favor, ingresa el enlace de YouTube o Google Drive.",
+        });
+        return;
+      }
     }
 
     if (targetType === 'specific' && selectedStudents.length === 0) {
@@ -134,8 +168,20 @@ export default function VideosGestionPage() {
     setIsUploading(true);
 
     try {
-      const fileName = selectedFile.name;
-      const fileSize = `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`;
+      let fileName = "";
+      let fileSize = "";
+      let videoUrl = "";
+
+      if (uploadMethod === 'file' && selectedFile) {
+        fileName = selectedFile.name;
+        fileSize = `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`;
+        videoUrl = "#";
+      } else {
+        fileName = linkTitle;
+        fileSize = "Enlace";
+        videoUrl = linkUrl;
+      }
+
       const uploadDate = new Date().toISOString().split('T')[0];
 
       const newItem = {
@@ -145,7 +191,7 @@ export default function VideosGestionPage() {
         uploadDate: uploadDate,
         dateAdded: uploadDate,
         type: 'video',
-        url: '#'
+        url: videoUrl
       };
 
       if (targetType === 'all') {
@@ -161,10 +207,14 @@ export default function VideosGestionPage() {
 
       toast({
         title: "Carga Exitosa",
-        description: `El video "${fileName}" ha sido guardado permanentemente.`,
+        description: uploadMethod === 'file'
+          ? `El video "${fileName}" ha sido guardado permanentemente.`
+          : `El enlace "${fileName}" ha sido guardado correctamente.`,
       });
 
       setSelectedFile(null);
+      setLinkTitle('');
+      setLinkUrl('');
       setSelectedStudents([]);
       setUploadModalOpen(false);
       
@@ -272,7 +322,7 @@ export default function VideosGestionPage() {
         </main>
         
         <div className="fixed bottom-8 right-8 z-50">
-          <Button size="lg" className="rounded-full shadow-lg shadow-primary/30 h-16 w-16" onClick={() => setUploadModalOpen(true)}>
+          <Button size="lg" className="rounded-full shadow-lg shadow-primary/30 h-16 w-16" onClick={handleOpenUploadModal}>
             <Plus className="h-8 w-8" />
           </Button>
         </div>
@@ -283,27 +333,88 @@ export default function VideosGestionPage() {
           <DialogHeader>
             <DialogTitle className="text-primary font-headline text-2xl">Subir Video</DialogTitle>
             <DialogDescription>
-              Selecciona un archivo de video para subir.
+              {uploadMethod === 'file' 
+                ? "Selecciona un archivo de video para subir."
+                : "Ingresa la información del enlace de YouTube o Google Drive."}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-6">
-            <label htmlFor="file-upload" className="relative block w-full h-40 border-2 border-dashed border-white/10 rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors">
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <FileUp className="w-10 h-10 mb-2" />
-                  <p className="font-semibold">Seleccionar archivo</p>
-              </div>
-              <input id="file-upload" type="file" accept="video/*" className="sr-only" onChange={handleFileChange} />
-            </label>
-            {selectedFile && (
-                <div className="flex items-center justify-between p-3 bg-secondary/50 border border-white/5 rounded-md">
-                    <div className="flex items-center gap-3 truncate">
-                        <Video className="w-5 h-5 text-primary" />
-                        <span className="text-sm truncate">{selectedFile.name}</span>
+            {/* Método de Carga (Tabs) */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
+              <button
+                type="button"
+                onClick={() => setUploadMethod('file')}
+                className={`py-2 px-3 text-sm font-semibold rounded-md transition-all ${
+                  uploadMethod === 'file'
+                    ? 'bg-primary text-primary-foreground shadow'
+                    : 'text-muted-foreground hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Archivo Local
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMethod('link')}
+                className={`py-2 px-3 text-sm font-semibold rounded-md transition-all ${
+                  uploadMethod === 'link'
+                    ? 'bg-primary text-primary-foreground shadow'
+                    : 'text-muted-foreground hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Enlace Web
+              </button>
+            </div>
+
+            {uploadMethod === 'file' ? (
+              <div className="space-y-4">
+                <label htmlFor="file-upload" className="relative block w-full h-40 border-2 border-dashed border-white/10 rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors">
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                      <FileUp className="w-10 h-10 mb-2" />
+                      <p className="font-semibold">Seleccionar archivo</p>
+                  </div>
+                  <input id="file-upload" type="file" accept="video/*" className="sr-only" onChange={handleFileChange} />
+                </label>
+                {selectedFile && (
+                    <div className="flex items-center justify-between p-3 bg-secondary/50 border border-white/5 rounded-md">
+                        <div className="flex items-center gap-3 truncate">
+                            <Video className="w-5 h-5 text-primary" />
+                            <span className="text-sm truncate">{selectedFile.name}</span>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedFile(null)}>
+                            <X className="w-4 h-4" />
+                        </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedFile(null)}>
-                        <X className="w-4 h-4" />
-                    </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="link-title" className="text-sm font-bold text-muted-foreground block">
+                    Título del video
+                  </label>
+                  <input
+                    id="link-title"
+                    type="text"
+                    placeholder="Ej. Introducción a React"
+                    value={linkTitle}
+                    onChange={(e) => setLinkTitle(e.target.value)}
+                    className="w-full px-3 py-2 bg-secondary/50 border border-white/10 rounded-md text-sm text-white placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                  />
                 </div>
+                <div className="space-y-2">
+                  <label htmlFor="link-url" className="text-sm font-bold text-muted-foreground block">
+                    Enlace del video (YouTube o Google Drive)
+                  </label>
+                  <input
+                    id="link-url"
+                    type="url"
+                    placeholder="Ej. https://www.youtube.com/watch?v=... o enlace de Drive"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    className="w-full px-3 py-2 bg-secondary/50 border border-white/10 rounded-md text-sm text-white placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+              </div>
             )}
 
             {/* Selector de Destinatarios */}
@@ -362,7 +473,10 @@ export default function VideosGestionPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setUploadModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleUpload} disabled={!selectedFile || isUploading}>
+            <Button 
+              onClick={handleUpload} 
+              disabled={isUploading || (uploadMethod === 'file' ? !selectedFile : (!linkTitle.trim() || !linkUrl.trim()))}
+            >
                 {isUploading ? "Subiendo..." : "Subir Video"}
                 {isUploading && <Upload className="ml-2 h-4 w-4 animate-pulse" />}
             </Button>

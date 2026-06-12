@@ -116,6 +116,24 @@ export default function VideosEstudiantePage() {
     }
   };
 
+  const isGoogleDriveUrl = (url: string) => {
+    return url.includes('drive.google.com') || url.includes('docs.google.com');
+  };
+
+  const getGoogleDriveEmbedUrl = (url: string) => {
+    try {
+      let fileId = "";
+      if (url.includes('/file/d/')) {
+        fileId = url.split('/file/d/')[1].split('/')[0];
+      } else if (url.includes('id=')) {
+        fileId = url.split('id=')[1].split('&')[0];
+      }
+      return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : url;
+    } catch (e) {
+      return url;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground relative">
       <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-background/80 backdrop-blur-sm">
@@ -179,6 +197,13 @@ export default function VideosEstudiantePage() {
               isYouTubeUrl(activeVideo.url || "") ? (
                 <iframe
                   src={getYouTubeEmbedUrl(activeVideo.url || "")}
+                  className="w-full h-full border-none"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                />
+              ) : isGoogleDriveUrl(activeVideo.url || "") ? (
+                <iframe
+                  src={getGoogleDriveEmbedUrl(activeVideo.url || "")}
                   className="w-full h-full border-none"
                   allow="autoplay; encrypted-media"
                   allowFullScreen
