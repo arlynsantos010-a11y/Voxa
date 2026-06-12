@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ArrowLeft, Video, PlayCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
@@ -14,17 +15,19 @@ interface MaterialFile {
   name: string;
   size: string;
   uploadDate: string;
+  url?: string;
 }
 
 const initialFiles: MaterialFile[] = [
-    { id: "1", name: "Clase_Introductoria.mp4", size: "150.7 MB", uploadDate: "2024-05-19" },
-    { id: "2", name: "Tutorial_React_Hooks.mp4", size: "250.2 MB", uploadDate: "2024-05-17" },
+    { id: "1", name: "Clase_Introductoria.mp4", size: "150.7 MB", uploadDate: "2024-05-19", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
+    { id: "2", name: "Tutorial_React_Hooks.mp4", size: "250.2 MB", uploadDate: "2024-05-17", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
 ]
 
 export default function VideosEstudiantePage() {
   const { username } = useAuth();
   const [files, setFiles] = useState<MaterialFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeVideo, setActiveVideo] = useState<MaterialFile | null>(null);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -43,7 +46,8 @@ export default function VideosEstudiantePage() {
               id: k,
               name: data[k].name || data[k].title,
               size: data[k].size || "N/A",
-              uploadDate: data[k].uploadDate || data[k].dateAdded || ""
+              uploadDate: data[k].uploadDate || data[k].dateAdded || "",
+              url: data[k].url || '#'
             });
           });
         }
@@ -61,7 +65,8 @@ export default function VideosEstudiantePage() {
                   id: k,
                   name: data[k].title || data[k].name,
                   size: data[k].size || "N/A",
-                  uploadDate: data[k].dateAdded || data[k].uploadDate || ""
+                  uploadDate: data[k].dateAdded || data[k].uploadDate || "",
+                  url: data[k].url || '#'
                 });
               }
             });
@@ -90,6 +95,26 @@ export default function VideosEstudiantePage() {
 
     fetchVideos();
   }, [username]);
+
+  const isYouTubeUrl = (url: string) => {
+    return url.includes('youtube.com') || url.includes('youtu.be');
+  };
+
+  const getYouTubeEmbedUrl = (url: string) => {
+    try {
+      let videoId = "";
+      if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
+      } else if (url.includes('youtube.com/watch')) {
+        videoId = url.split('v=')[1].split('&')[0];
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('embed/')[1].split(/[?#]/)[0];
+      }
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    } catch (e) {
+      return "";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
@@ -121,7 +146,7 @@ export default function VideosEstudiantePage() {
               </div>
             ) : files.length > 0 ? (
               files.map((file) => (
-                <div key={file.id} className="flex items-center justify-between p-3 bg-secondary/50 border border-white/5 rounded-md hover:bg-secondary/70 transition-colors">
+                <div key={file.id} className="flex items-center justify-between p-3 bg-secondary/50 border border-white/5 rounded-md hover:bg-secondary/70 transition-colors cursor-pointer" onClick={() => setActiveVideo(file)}>
                   <div className="flex items-center gap-4 truncate">
                       <Video className="w-6 h-6 text-primary flex-shrink-0" />
                       <div className="truncate">
@@ -142,6 +167,37 @@ export default function VideosEstudiantePage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Modal Reproductor de Video */}
+      <Dialog open={!!activeVideo} onOpenChange={(open) => !open && setActiveVideo(null)}>
+        <DialogContent className="sm:max-w-[640px] bg-secondary/90 backdrop-blur-md border-white/10 p-4">
+          <DialogHeader>
+            <DialogTitle className="text-primary font-headline text-xl truncate">{activeVideo?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video w-full bg-black rounded-lg overflow-hidden mt-2 relative">
+            {activeVideo && (
+              isYouTubeUrl(activeVideo.url || "") ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(activeVideo.url || "")}
+                  className="w-full h-full border-none"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={(activeVideo.url && activeVideo.url !== '#') ? activeVideo.url : "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
+                  controls
+                  autoPlay
+                  className="w-full h-full object-contain"
+                />
+              )
+            )}
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setActiveVideo(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
