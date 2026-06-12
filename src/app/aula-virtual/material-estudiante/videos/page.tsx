@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { ArrowLeft, Video, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Video, PlayCircle, Maximize, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { ref, get } from "firebase/database";
@@ -28,6 +28,23 @@ export default function VideosEstudiantePage() {
   const [files, setFiles] = useState<MaterialFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeVideo, setActiveVideo] = useState<MaterialFile | null>(null);
+
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleFullscreen = () => {
+    if (videoContainerRef.current) {
+      const elem = videoContainerRef.current as any;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -192,20 +209,20 @@ export default function VideosEstudiantePage() {
           <DialogHeader>
             <DialogTitle className="text-primary font-headline text-xl truncate">{activeVideo?.name}</DialogTitle>
           </DialogHeader>
-          <div className="aspect-video w-full bg-black rounded-lg overflow-hidden mt-2 relative">
+          <div ref={videoContainerRef} className="aspect-video w-full bg-black rounded-lg overflow-hidden mt-2 relative">
             {activeVideo && (
               isYouTubeUrl(activeVideo.url || "") ? (
                 <iframe
                   src={getYouTubeEmbedUrl(activeVideo.url || "")}
                   className="w-full h-full border-none"
-                  allow="autoplay; encrypted-media"
+                  allow="autoplay; encrypted-media; fullscreen"
                   allowFullScreen
                 />
               ) : isGoogleDriveUrl(activeVideo.url || "") ? (
                 <iframe
                   src={getGoogleDriveEmbedUrl(activeVideo.url || "")}
                   className="w-full h-full border-none"
-                  allow="autoplay; encrypted-media"
+                  allow="autoplay; encrypted-media; fullscreen"
                   allowFullScreen
                 />
               ) : (
@@ -218,8 +235,22 @@ export default function VideosEstudiantePage() {
               )
             )}
           </div>
-          <DialogFooter className="mt-4">
-            <Button variant="ghost" onClick={() => setActiveVideo(null)}>Cerrar</Button>
+          <DialogFooter className="mt-4 flex flex-col sm:flex-row sm:justify-between gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="outline" className="gap-2 flex-1 sm:flex-none text-white border-white/10 hover:bg-white/5" onClick={handleFullscreen}>
+                <Maximize className="w-4 h-4 text-primary" />
+                Pantalla Completa
+              </Button>
+              {activeVideo && activeVideo.url && activeVideo.url !== '#' && (
+                <Button variant="outline" className="gap-2 flex-1 sm:flex-none text-white border-white/10 hover:bg-white/5" asChild>
+                  <a href={activeVideo.url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-4 h-4 text-primary" />
+                    Abrir en {isGoogleDriveUrl(activeVideo.url) ? 'Drive' : isYouTubeUrl(activeVideo.url) ? 'YouTube' : 'Enlace'}
+                  </a>
+                </Button>
+              )}
+            </div>
+            <Button variant="ghost" className="text-white hover:bg-white/5" onClick={() => setActiveVideo(null)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
