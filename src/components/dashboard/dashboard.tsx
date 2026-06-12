@@ -77,15 +77,15 @@ export default function Dashboard({
     <div className="flex flex-col min-h-screen">
       <DashboardHeader userRole={userRole} onLogout={onLogout} />
       
-      <main className="flex-grow flex items-center justify-center py-6 sm:py-10">
+      <main className="flex-grow pb-12">
         {userRole === "student" ? (
-          <div className="w-full flex flex-col items-center justify-center px-4">
+          <div className="w-full flex flex-col items-center px-4 pt-6 sm:pt-10">
             {reel ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
-                className="w-full flex flex-col items-center justify-center"
+                className="w-full flex flex-col items-center justify-center animate-fade-in"
               >
                 {/* Contenedor del reproductor de Reels */}
                 <div className="w-[320px] min-[400px]:w-[355px] h-[55vh] min-h-[460px] max-h-[560px] bg-black rounded-[2.5rem] overflow-hidden relative border-[6px] border-neutral-900 shadow-[0_20px_50px_rgba(0,0,0,0.5)] mx-auto">
@@ -120,9 +120,23 @@ export default function Dashboard({
                 <p className="text-muted-foreground text-sm font-semibold">Cargando Reels...</p>
               </div>
             )}
+
+            {/* Todo lo demás debajo de los botones */}
+            <div className="w-full mt-6">
+              <DashboardHero userRole={userRole} username={username} />
+              <div className="container mx-auto px-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                >
+                  <StudentProgress progress={progress} />
+                </motion.div>
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="container mx-auto px-4 w-full">
+          <div className="container mx-auto px-4 w-full pt-6 sm:pt-10">
             <DashboardHero userRole={userRole} username={username} />
             <motion.div
               initial={{ opacity: 0, y: 40 }}
@@ -136,7 +150,7 @@ export default function Dashboard({
         )}
       </main>
 
-      {userRole !== "student" && <DashboardFooter />}
+      <DashboardFooter />
 
       {/* Botón Flotante de WhatsApp exclusivo para Estudiantes */}
       {userRole === "student" && (
