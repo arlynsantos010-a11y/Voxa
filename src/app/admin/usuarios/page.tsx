@@ -252,6 +252,7 @@ export default function GestionUsuariosPage() {
                           </SelectTrigger>
                           <SelectContent className="glass-card border-white/10">
                             <SelectItem value="Inglés" className="focus:bg-primary/20">Inglés</SelectItem>
+                            <SelectItem value="Español" className="focus:bg-primary/20">Español</SelectItem>
                             <SelectItem value="Francés" className="focus:bg-primary/20">Francés</SelectItem>
                             <SelectItem value="Alemán" className="focus:bg-primary/20">Alemán</SelectItem>
                             <SelectItem value="Italiano" className="focus:bg-primary/20">Italiano</SelectItem>
